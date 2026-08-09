@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: neo-music-backend
+
+  # 개발/테스트용 인메모리 DB (실행 시 메모리에 뜨고, 종료 시 사라짐)
+  datasource:
+    url: jdbc:h2:mem:neomusic;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop          # 엔티티 기준으로 스키마 자동 생성 (개발 편의)
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # 브라우저에서 H2 콘솔로 데이터 확인 가능: http://localhost:8080/h2-console
+  h2:
+    console:
+      enabled: true

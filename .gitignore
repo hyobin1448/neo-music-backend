@@ -1,0 +1,16 @@
+# Gradle
+.gradle/
+build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# 로그 / OS
+*.log
+.DS_Store
+
+# 환경 변수 (비밀 값)
+.env
