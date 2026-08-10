@@ -29,6 +29,13 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
+    // 인증: 비밀번호 해싱(BCrypt)만 가져온다 (전체 시큐리티 필터는 안 씀 → 엔드포인트가 막히지 않음)
+    implementation("org.springframework.security:spring-security-crypto")
+    // 인증: JWT 발급/검증
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
     // 개발/테스트용 인메모리 DB
     runtimeOnly("com.h2database:h2")
 
