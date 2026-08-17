@@ -1,8 +1,10 @@
 package com.hyobin.neomusic.common.web
 
 import com.hyobin.neomusic.auth.domain.AccountLockedException
+import com.hyobin.neomusic.auth.domain.ForbiddenException
 import com.hyobin.neomusic.auth.domain.InvalidCredentialsException
 import com.hyobin.neomusic.auth.domain.NicknameAlreadyExistsException
+import com.hyobin.neomusic.auth.domain.UnauthenticatedException
 import com.hyobin.neomusic.catalog.domain.SongNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -28,6 +30,14 @@ class GlobalExceptionHandler {
     @ExceptionHandler(AccountLockedException::class)
     fun handleLocked(e: AccountLockedException): ProblemDetail =
         problem(HttpStatus.LOCKED, e.message)
+
+    @ExceptionHandler(UnauthenticatedException::class)
+    fun handleUnauthenticated(e: UnauthenticatedException): ProblemDetail =
+        problem(HttpStatus.UNAUTHORIZED, e.message)
+
+    @ExceptionHandler(ForbiddenException::class)
+    fun handleForbidden(e: ForbiddenException): ProblemDetail =
+        problem(HttpStatus.FORBIDDEN, e.message)
 
     @ExceptionHandler(SongNotFoundException::class)
     fun handleNotFound(e: SongNotFoundException): ProblemDetail =

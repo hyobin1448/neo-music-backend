@@ -69,7 +69,7 @@ Kotlin · Spring Boot 3 · JPA(+필요시 QueryDSL) · 헥사고날+DDD · MySQL
 3. [x] **카탈로그 도메인 모델** → 값객체(SongId/Lang/StorageKey/Checksum)+Track/Lyric/Song(애그리거트). 순수 Kotlin, 단위 테스트 8개 통과
 4. [x] **영속성 어댑터** → 출력포트(Save/Load) + JPA 엔티티(Song/Track/Lyric) + 매퍼 + 어댑터. 왕복·UPSERT 통합테스트 통과
 5. [x] **카탈로그 API + 델타 동기화** → CatalogVersion + CatalogService(register/delete/getCatalog) + GET /catalog?since=. 델타/tombstone/웹 테스트 통과 (총 15개 green)
-6. 인증 (회원가입/로그인/JWT/관리자 초기화)
+6. [~] 인증 — 회원 도메인/영속성/회원가입·로그인·JWT 완료(라이브 검증 OK, 총 26개 테스트). 남음: JWT 요청 인증 필터 + 관리자 비번 초기화
 7. 관리자 곡 등록/삭제 API + 어드민 웹
 8. 플레이리스트 → 검색
 9. 파일 StoragePort(로컬) + signed URL
