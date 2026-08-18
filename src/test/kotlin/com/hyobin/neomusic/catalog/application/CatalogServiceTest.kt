@@ -93,6 +93,13 @@ class CatalogServiceTest @Autowired constructor(
     }
 
     @Test
+    fun `없는 곡을 삭제하면 SongNotFound로 거부한다`() {
+        shouldThrow<SongNotFoundException> {
+            catalogService.delete(SongId("nope"))
+        }
+    }
+
+    @Test
     fun `삭제하면 tombstone으로 전파되고, 첫 동기화에는 안 보인다`() {
         catalogService.register(song("song_001"))                 // 버전 1
         val v1 = catalogService.getCatalog(null).version          // = 1

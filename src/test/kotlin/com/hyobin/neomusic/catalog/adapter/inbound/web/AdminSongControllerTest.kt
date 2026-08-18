@@ -3,6 +3,7 @@ package com.hyobin.neomusic.catalog.adapter.inbound.web
 import com.hyobin.neomusic.auth.adapter.inbound.web.JwtAuthenticationFilter
 import com.hyobin.neomusic.auth.application.AuthenticatedUser
 import com.hyobin.neomusic.auth.domain.Role
+import com.hyobin.neomusic.catalog.application.port.inbound.DeleteSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.RegisterSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.UpdateSongUseCase
 import com.hyobin.neomusic.common.web.ArgumentResolverConfig
@@ -14,6 +15,7 @@ import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -34,6 +36,9 @@ class AdminSongControllerTest {
 
     @MockBean
     lateinit var updateSongUseCase: UpdateSongUseCase
+
+    @MockBean
+    lateinit var deleteSongUseCase: DeleteSongUseCase
 
     private val validBody = """
         {
@@ -83,5 +88,21 @@ class AdminSongControllerTest {
             put("/admin/songs/song_001").contentType(MediaType.APPLICATION_JSON).content(updateBody)
                 .requestAttr(JwtAuthenticationFilter.CURRENT_USER_ATTR, normalUser()),
         ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `삭제도 관리자가 아니면 403을 반환한다`() {
+        mockMvc.perform(
+            delete("/admin/songs/song_001")
+                .requestAttr(JwtAuthenticationFilter.CURRENT_USER_ATTR, normalUser()),
+        ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `관리자가 삭제하면 204를 반환한다`() {
+        mockMvc.perform(
+            delete("/admin/songs/song_001")
+                .requestAttr(JwtAuthenticationFilter.CURRENT_USER_ATTR, admin()),
+        ).andExpect(status().isNoContent)
     }
 }
