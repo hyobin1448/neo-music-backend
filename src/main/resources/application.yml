@@ -27,3 +27,9 @@ neomusic:
   jwt:
     secret: "dev-only-secret-please-change-in-production-0123456789"
     expiration-seconds: 86400   # 24시간
+
+  # 최초 관리자 계정 — 서버 기동 시 없으면 자동 생성 (운영에서는 환경변수로 덮어쓸 것)
+  admin:
+    nickname: admin
+    password: admin1234
+    enabled: true
