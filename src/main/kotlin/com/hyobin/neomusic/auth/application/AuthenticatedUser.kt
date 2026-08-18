@@ -1,5 +1,6 @@
 package com.hyobin.neomusic.auth.application
 
+import com.hyobin.neomusic.auth.domain.ForbiddenException
 import com.hyobin.neomusic.auth.domain.Role
 
 /**
@@ -12,4 +13,9 @@ data class AuthenticatedUser(
     val role: Role,
 ) {
     val isAdmin: Boolean get() = role == Role.ADMIN
+
+    /** 관리자 전용 작업을 보호한다. 관리자가 아니면 403. */
+    fun requireAdmin() {
+        if (!isAdmin) throw ForbiddenException()
+    }
 }
