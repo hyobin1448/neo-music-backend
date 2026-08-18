@@ -21,3 +21,7 @@ class UnauthenticatedException :
 /** 인증은 됐지만 권한이 부족함(예: 관리자 전용). (403) */
 class ForbiddenException :
     RuntimeException("이 작업을 수행할 권한이 없습니다.")
+
+/** 존재하지 않는 회원을 조회·변경하려 할 때. (404) */
+class MemberNotFoundException(memberId: Long) :
+    RuntimeException("회원을 찾을 수 없습니다: $memberId")

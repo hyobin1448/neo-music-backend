@@ -3,6 +3,7 @@ package com.hyobin.neomusic.common.web
 import com.hyobin.neomusic.auth.domain.AccountLockedException
 import com.hyobin.neomusic.auth.domain.ForbiddenException
 import com.hyobin.neomusic.auth.domain.InvalidCredentialsException
+import com.hyobin.neomusic.auth.domain.MemberNotFoundException
 import com.hyobin.neomusic.auth.domain.NicknameAlreadyExistsException
 import com.hyobin.neomusic.auth.domain.UnauthenticatedException
 import com.hyobin.neomusic.catalog.domain.SongAlreadyExistsException
@@ -46,6 +47,10 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(SongNotFoundException::class)
     fun handleNotFound(e: SongNotFoundException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, e.message)
+
+    @ExceptionHandler(MemberNotFoundException::class)
+    fun handleMemberNotFound(e: MemberNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, e.message)
 
     // 도메인 값 객체 검증 실패(빈 값, 길이 등) → 400

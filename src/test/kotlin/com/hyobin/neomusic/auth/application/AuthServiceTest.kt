@@ -1,6 +1,7 @@
 package com.hyobin.neomusic.auth.application
 
 import com.hyobin.neomusic.auth.application.port.inbound.LoginCommand
+import com.hyobin.neomusic.auth.application.port.inbound.ResetPasswordCommand
 import com.hyobin.neomusic.auth.application.port.inbound.SignupCommand
 import com.hyobin.neomusic.auth.application.port.outbound.LoadMemberPort
 import com.hyobin.neomusic.auth.application.port.outbound.PasswordEncoderPort
@@ -9,9 +10,11 @@ import com.hyobin.neomusic.auth.application.port.outbound.TokenPort
 import com.hyobin.neomusic.auth.domain.AccountLockedException
 import com.hyobin.neomusic.auth.domain.InvalidCredentialsException
 import com.hyobin.neomusic.auth.domain.Member
+import com.hyobin.neomusic.auth.domain.MemberNotFoundException
 import com.hyobin.neomusic.auth.domain.Nickname
 import com.hyobin.neomusic.auth.domain.NicknameAlreadyExistsException
 import com.hyobin.neomusic.auth.domain.PasswordHash
+import com.hyobin.neomusic.auth.domain.Role
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.StringSpec
@@ -96,6 +99,31 @@ class AuthServiceTest : StringSpec() {
 
             shouldThrow<AccountLockedException> {
                 service.login(LoginCommand("할머니", "pw1234"))
+            }
+        }
+
+        "관리자 비밀번호 초기화 시 새 해시로 바뀌고 잠금이 풀린다" {
+            // 로그인 5회 실패로 잠긴 회원
+            val member = Member.reconstitute(
+                id = 5, nickname = Nickname.of("할머니"), passwordHash = PasswordHash("OLD"),
+                role = Role.USER, failedAttempts = 0, lockedUntil = now.plusSeconds(600),
+            )
+            every { loadMemberPort.findById(5) } returns member
+            every { passwordEncoder.encode("new1234") } returns PasswordHash("NEW")
+            every { saveMemberPort.save(any()) } answers { firstArg() }
+
+            service.resetPassword(ResetPasswordCommand(5, "new1234"))
+
+            member.passwordHash shouldBe PasswordHash("NEW")
+            member.isLocked(now) shouldBe false
+            verify { saveMemberPort.save(member) }
+        }
+
+        "없는 회원의 비밀번호를 초기화하면 실패한다" {
+            every { loadMemberPort.findById(99) } returns null
+
+            shouldThrow<MemberNotFoundException> {
+                service.resetPassword(ResetPasswordCommand(99, "new1234"))
             }
         }
     }
