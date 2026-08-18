@@ -4,6 +4,7 @@ import com.hyobin.neomusic.auth.adapter.inbound.web.JwtAuthenticationFilter
 import com.hyobin.neomusic.auth.application.AuthenticatedUser
 import com.hyobin.neomusic.auth.domain.Role
 import com.hyobin.neomusic.catalog.application.port.inbound.RegisterSongUseCase
+import com.hyobin.neomusic.catalog.application.port.inbound.UpdateSongUseCase
 import com.hyobin.neomusic.common.web.ArgumentResolverConfig
 import com.hyobin.neomusic.common.web.GlobalExceptionHandler
 import org.junit.jupiter.api.Test
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 /**
@@ -29,6 +31,9 @@ class AdminSongControllerTest {
 
     @MockBean
     lateinit var registerSongUseCase: RegisterSongUseCase
+
+    @MockBean
+    lateinit var updateSongUseCase: UpdateSongUseCase
 
     private val validBody = """
         {
@@ -69,5 +74,14 @@ class AdminSongControllerTest {
             post("/admin/songs").contentType(MediaType.APPLICATION_JSON).content(blankTitle)
                 .requestAttr(JwtAuthenticationFilter.CURRENT_USER_ATTR, admin()),
         ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `수정도 관리자가 아니면 403을 반환한다`() {
+        val updateBody = """{"title":"새 제목","artist":"이원수"}"""
+        mockMvc.perform(
+            put("/admin/songs/song_001").contentType(MediaType.APPLICATION_JSON).content(updateBody)
+                .requestAttr(JwtAuthenticationFilter.CURRENT_USER_ATTR, normalUser()),
+        ).andExpect(status().isForbidden)
     }
 }

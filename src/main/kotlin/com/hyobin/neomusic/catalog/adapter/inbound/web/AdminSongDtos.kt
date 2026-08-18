@@ -37,6 +37,29 @@ data class RegisterSongRequest(
     )
 }
 
+/**
+ * 곡 수정 요청 DTO. id는 URL 경로(/admin/songs/{id})에서 오므로 본문엔 없다.
+ * 전체 교체(full replace): 넘긴 트랙·가사 목록으로 통째로 갈아끼운다.
+ */
+data class UpdateSongRequest(
+    @field:NotBlank val title: String,
+    @field:NotBlank val artist: String,
+    val coverKey: String? = null,
+    val displayOrder: Int = 0,
+    @field:Valid val tracks: List<TrackRequest> = emptyList(),
+    @field:Valid val lyrics: List<LyricRequest> = emptyList(),
+) {
+    fun toDomain(id: String): Song = Song.create(
+        id = SongId(id),
+        title = title,
+        artist = artist,
+        coverKey = coverKey?.let { StorageKey(it) },
+        displayOrder = displayOrder,
+        tracks = tracks.map { it.toDomain() },
+        lyrics = lyrics.map { it.toDomain() },
+    )
+}
+
 data class TrackRequest(
     @field:NotBlank val lang: String,
     @field:NotBlank val label: String,

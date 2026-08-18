@@ -5,9 +5,12 @@ import com.hyobin.neomusic.catalog.domain.Lang
 import com.hyobin.neomusic.catalog.domain.Lyric
 import com.hyobin.neomusic.catalog.domain.LyricType
 import com.hyobin.neomusic.catalog.domain.Song
+import com.hyobin.neomusic.catalog.domain.SongAlreadyExistsException
 import com.hyobin.neomusic.catalog.domain.SongId
+import com.hyobin.neomusic.catalog.domain.SongNotFoundException
 import com.hyobin.neomusic.catalog.domain.StorageKey
 import com.hyobin.neomusic.catalog.domain.Track
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -62,6 +65,31 @@ class CatalogServiceTest @Autowired constructor(
 
         delta.changed.map { it.id.value } shouldBe listOf("song_002")
         delta.version shouldBe 2
+    }
+
+    @Test
+    fun `같은 id로 다시 등록하면 SongAlreadyExists로 거부한다`() {
+        catalogService.register(song("song_001"))
+        shouldThrow<SongAlreadyExistsException> {
+            catalogService.register(song("song_001", title = "다른제목"))
+        }
+    }
+
+    @Test
+    fun `없는 곡을 수정하면 SongNotFound로 거부한다`() {
+        shouldThrow<SongNotFoundException> {
+            catalogService.update(song("nope"))
+        }
+    }
+
+    @Test
+    fun `수정하면 내용이 바뀌고 버전이 올라간다`() {
+        catalogService.register(song("song_001", title = "원제"))   // 버전 1
+        catalogService.update(song("song_001", title = "수정본"))    // 버전 2
+
+        val snapshot = catalogService.getCatalog(since = null)
+        snapshot.changed.single().title shouldBe "수정본"
+        snapshot.version shouldBe 2
     }
 
     @Test

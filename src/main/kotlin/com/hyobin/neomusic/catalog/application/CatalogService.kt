@@ -3,10 +3,12 @@ package com.hyobin.neomusic.catalog.application
 import com.hyobin.neomusic.catalog.application.port.inbound.DeleteSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.GetCatalogUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.RegisterSongUseCase
+import com.hyobin.neomusic.catalog.application.port.inbound.UpdateSongUseCase
 import com.hyobin.neomusic.catalog.application.port.outbound.CatalogVersionPort
 import com.hyobin.neomusic.catalog.application.port.outbound.LoadSongPort
 import com.hyobin.neomusic.catalog.application.port.outbound.SaveSongPort
 import com.hyobin.neomusic.catalog.domain.Song
+import com.hyobin.neomusic.catalog.domain.SongAlreadyExistsException
 import com.hyobin.neomusic.catalog.domain.SongId
 import com.hyobin.neomusic.catalog.domain.SongNotFoundException
 import org.springframework.stereotype.Service
@@ -21,11 +23,20 @@ class CatalogService(
     private val savePort: SaveSongPort,
     private val loadPort: LoadSongPort,
     private val versionPort: CatalogVersionPort,
-) : RegisterSongUseCase, DeleteSongUseCase, GetCatalogUseCase {
+) : RegisterSongUseCase, UpdateSongUseCase, DeleteSongUseCase, GetCatalogUseCase {
 
-    /** 곡 등록/수정: 전역 버전을 올리고 그 버전으로 스탬프해 저장. */
+    /** 곡 신규 등록: 같은 id가 이미 있으면 거부. 전역 버전을 올려 스탬프해 저장. */
     @Transactional
     override fun register(song: Song): Song {
+        if (loadPort.findById(song.id) != null) throw SongAlreadyExistsException(song.id)
+        val version = versionPort.next()
+        return savePort.save(song, version)
+    }
+
+    /** 곡 수정: 대상이 없으면 거부. 넘어온 상태로 전체 교체하고 새 버전 스탬프. */
+    @Transactional
+    override fun update(song: Song): Song {
+        loadPort.findById(song.id) ?: throw SongNotFoundException(song.id)
         val version = versionPort.next()
         return savePort.save(song, version)
     }

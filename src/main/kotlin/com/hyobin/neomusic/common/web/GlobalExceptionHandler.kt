@@ -5,6 +5,7 @@ import com.hyobin.neomusic.auth.domain.ForbiddenException
 import com.hyobin.neomusic.auth.domain.InvalidCredentialsException
 import com.hyobin.neomusic.auth.domain.NicknameAlreadyExistsException
 import com.hyobin.neomusic.auth.domain.UnauthenticatedException
+import com.hyobin.neomusic.catalog.domain.SongAlreadyExistsException
 import com.hyobin.neomusic.catalog.domain.SongNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -21,6 +22,10 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(NicknameAlreadyExistsException::class)
     fun handleConflict(e: NicknameAlreadyExistsException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, e.message)
+
+    @ExceptionHandler(SongAlreadyExistsException::class)
+    fun handleSongConflict(e: SongAlreadyExistsException): ProblemDetail =
         problem(HttpStatus.CONFLICT, e.message)
 
     @ExceptionHandler(InvalidCredentialsException::class)
