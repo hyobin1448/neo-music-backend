@@ -52,6 +52,23 @@
         <div class="msg err" id="loginMsg"></div>
     </section>
 
+    <!-- 곡 추가 -->
+    <section class="card hidden" id="addCard">
+        <h2>곡 추가</h2>
+        <label>곡 ID <span class="muted">(예: song_001)</span></label>
+        <input id="newId"/>
+        <label>제목</label>
+        <input id="newTitle"/>
+        <label>아티스트</label>
+        <input id="newArtist"/>
+        <label>오디오 파일 <span class="muted">(선택 — 올리면 트랙으로 등록)</span></label>
+        <input id="newFile" type="file" accept="audio/*"/>
+        <label>언어 코드 <span class="muted">(오디오 있을 때, 예: ko)</span></label>
+        <input id="newLang" value="ko"/>
+        <div style="margin-top:16px"><button onclick="addSong()" id="addBtn">등록</button></div>
+        <div class="msg" id="addMsg"></div>
+    </section>
+
     <!-- 곡 목록 -->
     <section class="card hidden" id="songsCard">
         <h2>곡 목록 <span class="muted" id="songCount"></span></h2>
@@ -96,6 +113,7 @@
 
     function showAdmin(nickname) {
         document.getElementById('loginCard').classList.add('hidden');
+        document.getElementById('addCard').classList.remove('hidden');
         document.getElementById('songsCard').classList.remove('hidden');
         document.getElementById('logoutBtn').classList.remove('hidden');
         document.getElementById('who').textContent = nickname + ' (관리자)';
@@ -122,10 +140,59 @@
                     '<td>' + escapeHtml(s.title) + '</td>' +
                     '<td>' + escapeHtml(s.artist) + '</td>' +
                     '<td class="muted">' + s.tracks.length + '개</td>' +
-                    '<td class="row-actions"></td>';
+                    '<td class="row-actions"><button class="danger" data-id="' + s.id + '">삭제</button></td>';
+                tr.querySelector('button').onclick = () => deleteSong(s.id);
                 tbody.appendChild(tr);
             }
         } catch (e) { msg.textContent = '목록 로드 오류: ' + e.message; }
+    }
+
+    const val = (id) => document.getElementById(id).value.trim();
+
+    async function addSong() {
+        const id = val('newId'), title = val('newTitle'), artist = val('newArtist'), lang = val('newLang') || 'ko';
+        const fileInput = document.getElementById('newFile');
+        const msg = document.getElementById('addMsg'), btn = document.getElementById('addBtn');
+        msg.className = 'msg';
+        if (!id || !title || !artist) { msg.className = 'msg err'; msg.textContent = 'ID·제목·아티스트는 필수입니다.'; return; }
+        btn.disabled = true;
+        try {
+            let tracks = [];
+            if (fileInput.files.length > 0) {
+                msg.textContent = '파일 업로드 중...';
+                const fd = new FormData();
+                fd.append('file', fileInput.files[0]);
+                fd.append('prefix', 'songs');
+                const up = await fetch('/admin/files', { method: 'POST', headers: authHeader(), body: fd });
+                if (!up.ok) throw new Error('업로드 실패 (' + up.status + ')');
+                const f = await up.json();
+                tracks = [{ lang, label: lang, audioKey: f.key, durationMs: 0, bytes: f.bytes, checksum: f.checksum }];
+            }
+            msg.textContent = '등록 중...';
+            const res = await fetch('/admin/songs', {
+                method: 'POST',
+                headers: { ...authHeader(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, title, artist, tracks })
+            });
+            if (res.status === 409) throw new Error('이미 존재하는 곡 ID 입니다.');
+            if (!res.ok) throw new Error('등록 실패 (' + res.status + ')');
+            msg.className = 'msg ok'; msg.textContent = '✓ 등록 완료: ' + title;
+            ['newId', 'newTitle', 'newArtist'].forEach(i => document.getElementById(i).value = '');
+            fileInput.value = '';
+            loadSongs();
+        } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
+        finally { btn.disabled = false; }
+    }
+
+    async function deleteSong(id) {
+        if (!confirm(id + ' 곡을 삭제할까요?')) return;
+        const msg = document.getElementById('songsMsg');
+        msg.className = 'msg';
+        try {
+            const res = await fetch('/admin/songs/' + encodeURIComponent(id), { method: 'DELETE', headers: authHeader() });
+            if (!res.ok) throw new Error('삭제 실패 (' + res.status + ')');
+            loadSongs();
+        } catch (e) { msg.className = 'msg err'; msg.textContent = e.message; }
     }
 
     function escapeHtml(s) {
