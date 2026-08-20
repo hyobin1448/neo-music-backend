@@ -38,3 +38,7 @@ neomusic:
   storage:
     local:
       base-dir: ./storage
+    # 다운로드용 서명 URL (운영에선 secret 을 환경변수로 교체)
+    url:
+      secret: "dev-only-storage-secret-change-me-0123456789"
+      valid-seconds: 600
