@@ -72,6 +72,7 @@ com.hyobin.neomusic
 ```
 
 - API: `http://localhost:8080`
+- **관리자 웹 UI**: `http://localhost:8080/admin` (브라우저에서 로그인 → 곡 등록/업로드/삭제)
 - **Swagger UI**: `http://localhost:8080/swagger-ui.html` (Authorize에 로그인 토큰 입력 → 관리자 API 호출)
 - H2 콘솔: `http://localhost:8080/h2-console` (JDBC `jdbc:h2:mem:neomusic`, user `sa`, 비번 없음)
 - 기본 관리자 계정: `admin` / `admin1234` (서버 기동 시 자동 생성, 운영에서는 환경변수로 교체)
@@ -126,5 +127,5 @@ com.hyobin.neomusic
 - [x] 곡 검색 (제목/아티스트)
 - [x] 플레이리스트 (여러 개·이름·순서, 소유권 검증)
 - [x] CI (GitHub Actions — 푸시마다 빌드·테스트)
-- [ ] 관리자 웹 UI
+- [x] 관리자 웹 UI (Thymeleaf — 로그인/곡 등록·업로드·삭제, `/admin`)
 - [ ] 가사 텍스트 검색 (가사 구조화 후)
