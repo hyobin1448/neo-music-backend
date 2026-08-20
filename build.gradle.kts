@@ -24,6 +24,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    // 관리자 웹 UI (서버 렌더링 페이지 셸)
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 
     // Kotlin 지원 (JSON 직렬화, 리플렉션)
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")

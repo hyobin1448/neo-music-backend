@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Neo Music 관리자</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+        header { background: #1e293b; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        header h1 { font-size: 18px; margin: 0; color: #f8fafc; }
+        header .who { font-size: 13px; color: #94a3b8; }
+        main { max-width: 900px; margin: 0 auto; padding: 24px; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+        h2 { font-size: 15px; margin: 0 0 16px; color: #cbd5e1; }
+        label { display: block; font-size: 13px; margin: 10px 0 4px; color: #94a3b8; }
+        input { width: 100%; padding: 10px 12px; border: 1px solid #334155; border-radius: 8px; background: #0f172a; color: #e2e8f0; font-size: 14px; }
+        button { padding: 10px 18px; border: none; border-radius: 8px; background: #3b82f6; color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        button.ghost { background: transparent; border: 1px solid #475569; color: #cbd5e1; }
+        button.danger { background: #ef4444; }
+        button.danger:hover { background: #dc2626; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; font-weight: 500; font-size: 12px; }
+        .muted { color: #64748b; font-size: 13px; }
+        .msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+        .msg.err { color: #f87171; }
+        .msg.ok { color: #4ade80; }
+        .hidden { display: none; }
+        .row-actions { text-align: right; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>🎵 Neo Music 관리자</h1>
+    <div>
+        <span class="who" id="who"></span>
+        <button class="ghost hidden" id="logoutBtn" onclick="logout()">로그아웃</button>
+    </div>
+</header>
+
+<main>
+    <!-- 로그인 -->
+    <section class="card" id="loginCard">
+        <h2>관리자 로그인</h2>
+        <label>닉네임</label>
+        <input id="nickname" value="admin"/>
+        <label>비밀번호</label>
+        <input id="password" type="password" value="admin1234"/>
+        <div style="margin-top:16px"><button onclick="login()">로그인</button></div>
+        <div class="msg err" id="loginMsg"></div>
+    </section>
+
+    <!-- 곡 목록 -->
+    <section class="card hidden" id="songsCard">
+        <h2>곡 목록 <span class="muted" id="songCount"></span></h2>
+        <table>
+            <thead>
+            <tr><th>ID</th><th>제목</th><th>아티스트</th><th>트랙</th><th></th></tr>
+            </thead>
+            <tbody id="songTable"></tbody>
+        </table>
+        <div class="msg" id="songsMsg"></div>
+    </section>
+</main>
+
+<script>
+    const tokenKey = 'neomusic_admin_token';
+    const getToken = () => localStorage.getItem(tokenKey);
+    const authHeader = () => ({ 'Authorization': 'Bearer ' + getToken() });
+
+    async function login() {
+        const nickname = document.getElementById('nickname').value;
+        const password = document.getElementById('password').value;
+        const msg = document.getElementById('loginMsg');
+        msg.textContent = '';
+        try {
+            const res = await fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nickname, password })
+            });
+            if (!res.ok) { msg.textContent = '로그인 실패 (' + res.status + ')'; return; }
+            const data = await res.json();
+            if (data.role !== 'ADMIN') { msg.textContent = '관리자 계정이 아닙니다.'; return; }
+            localStorage.setItem(tokenKey, data.accessToken);
+            showAdmin(data.nickname);
+        } catch (e) { msg.textContent = '오류: ' + e.message; }
+    }
+
+    function logout() {
+        localStorage.removeItem(tokenKey);
+        location.reload();
+    }
+
+    function showAdmin(nickname) {
+        document.getElementById('loginCard').classList.add('hidden');
+        document.getElementById('songsCard').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        document.getElementById('who').textContent = nickname + ' (관리자)';
+        loadSongs();
+    }
+
+    async function loadSongs() {
+        const tbody = document.getElementById('songTable');
+        const msg = document.getElementById('songsMsg');
+        msg.textContent = '';
+        try {
+            const res = await fetch('/catalog');
+            const data = await res.json();
+            document.getElementById('songCount').textContent = '(' + data.changed.length + '곡)';
+            tbody.innerHTML = '';
+            if (data.changed.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="muted">등록된 곡이 없습니다.</td></tr>';
+                return;
+            }
+            for (const s of data.changed) {
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td class="muted">' + s.id + '</td>' +
+                    '<td>' + escapeHtml(s.title) + '</td>' +
+                    '<td>' + escapeHtml(s.artist) + '</td>' +
+                    '<td class="muted">' + s.tracks.length + '개</td>' +
+                    '<td class="row-actions"></td>';
+                tbody.appendChild(tr);
+            }
+        } catch (e) { msg.textContent = '목록 로드 오류: ' + e.message; }
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // 이미 로그인 상태면 바로 관리자 화면
+    if (getToken()) { showAdmin('관리자'); }
+</script>
+</body>
+</html>
