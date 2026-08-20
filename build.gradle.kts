@@ -36,6 +36,9 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
+    // API 문서: OpenAPI 3 + Swagger UI (브라우저에서 API 확인/호출)
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+
     // 개발/테스트용 인메모리 DB
     runtimeOnly("com.h2database:h2")
 
