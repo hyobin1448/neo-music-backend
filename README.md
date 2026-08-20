@@ -83,6 +83,10 @@ com.hyobin.neomusic
 | POST | `/auth/signup` | 회원가입 | 공개 |
 | POST | `/auth/login` | 로그인 (JWT 발급) | 공개 |
 | GET | `/catalog` | 카탈로그 동기화 (`?since=`로 델타) | 공개 |
+| GET | `/catalog/search` | 곡 검색 (`?q=` 제목·아티스트) | 공개 |
+| POST/GET | `/playlists` | 플레이리스트 생성 / 내 목록 | 인증 |
+| PUT/DELETE | `/playlists/{id}` | 이름 변경 / 삭제 | 소유자 |
+| POST/DELETE | `/playlists/{id}/songs` | 곡 추가 / 제거·순서변경 | 소유자 |
 | POST | `/admin/songs` | 곡 등록 (중복 시 409) | 관리자 |
 | PUT | `/admin/songs/{id}` | 곡 수정 (없으면 404) | 관리자 |
 | DELETE | `/admin/songs/{id}` | 곡 삭제 (소프트) | 관리자 |
@@ -117,6 +121,7 @@ com.hyobin.neomusic
 - [x] 관리자 곡·회원 관리
 - [x] Swagger / OpenAPI 문서
 - [x] 파일 스토리지 (업로드 + 서명 다운로드 URL)
-- [ ] 곡 검색 (제목/가사)
-- [ ] 플레이리스트
+- [x] 곡 검색 (제목/아티스트)
+- [x] 플레이리스트 (여러 개·이름·순서, 소유권 검증)
 - [ ] 관리자 웹 UI
+- [ ] 가사 텍스트 검색 (가사 구조화 후)
