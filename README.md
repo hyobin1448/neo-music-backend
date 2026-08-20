@@ -1,5 +1,7 @@
 # Neo Music Backend
 
+[![CI](https://github.com/hyobin1448/neo-music-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/hyobin1448/neo-music-backend/actions/workflows/ci.yml)
+
 > 다국어 오디오 · **가사 위에 기타 코드**를 제공하는 뮤직/코드 플레이어의 백엔드
 > Kotlin + Spring Boot · **헥사고날 아키텍처 + DDD**
 
@@ -123,5 +125,6 @@ com.hyobin.neomusic
 - [x] 파일 스토리지 (업로드 + 서명 다운로드 URL)
 - [x] 곡 검색 (제목/아티스트)
 - [x] 플레이리스트 (여러 개·이름·순서, 소유권 검증)
+- [x] CI (GitHub Actions — 푸시마다 빌드·테스트)
 - [ ] 관리자 웹 UI
 - [ ] 가사 텍스트 검색 (가사 구조화 후)
