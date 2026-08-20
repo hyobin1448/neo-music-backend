@@ -10,6 +10,14 @@ Flutter 앱 *Neo Music*의 실제 서버이자, 아키텍처·테스트·API 설
 
 ---
 
+## 🖥 관리자 화면 (`/admin`)
+
+브라우저에서 로그인 → 곡 등록·오디오 업로드·삭제. (Thymeleaf 셸 + 기존 REST API 재사용)
+
+<img src="docs/images/admin-dashboard.png" width="720" alt="관리자 대시보드"/>
+
+---
+
 ## ✨ 주요 기능
 
 - **회원가입/로그인** — 닉네임 + 비밀번호만 (개인정보 0). BCrypt 해싱, 로그인 5회 실패 시 계정 잠금
