@@ -17,13 +17,15 @@ interface SongJpaRepository : JpaRepository<SongJpaEntity, String> {
     /**
      * 삭제 안 된 곡 중 제목/아티스트에 검색어 포함(대소문자 무시).
      * 파생 메서드로는 "isDeleted=false AND (title OR artist)" 그룹핑이 안 돼 JPQL 로 명시.
+     *
+     * :q 는 어댑터에서 LIKE 메타문자(%, _)를 이스케이프해 넘긴다 → escape '!' 로 리터럴 취급.
      */
     @Query(
         """
         select s from SongJpaEntity s
         where s.isDeleted = false
-          and (lower(s.title) like lower(concat('%', :q, '%'))
-               or lower(s.artist) like lower(concat('%', :q, '%')))
+          and (lower(s.title) like lower(concat('%', :q, '%')) escape '!'
+               or lower(s.artist) like lower(concat('%', :q, '%')) escape '!')
         order by s.displayOrder asc
         """,
     )

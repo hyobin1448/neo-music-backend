@@ -59,5 +59,9 @@ class SongPersistenceAdapter(
         repository.findByLastModifiedVersionGreaterThan(version).map { it.toDomain() }
 
     override fun searchActive(query: String): List<Song> =
-        repository.searchActive(query).map { it.toDomain() }
+        repository.searchActive(escapeLike(query)).map { it.toDomain() }
+
+    /** LIKE 메타문자를 리터럴로 취급하도록 이스케이프('!'를 escape 문자로 사용). */
+    private fun escapeLike(raw: String): String =
+        raw.replace("!", "!!").replace("%", "!%").replace("_", "!_")
 }

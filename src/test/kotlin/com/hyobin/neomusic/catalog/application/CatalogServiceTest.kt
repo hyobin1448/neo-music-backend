@@ -103,6 +103,16 @@ class CatalogServiceTest @Autowired constructor(
     }
 
     @Test
+    fun `검색어의 LIKE 와일드카드(%)는 리터럴로 취급된다`() {
+        catalogService.register(song("s1", title = "아리랑"))
+        catalogService.register(song("s2", title = "50% 할인송"))
+
+        // '%'로 검색하면 전체가 아니라 '%'를 실제로 포함한 곡만
+        catalogService.search("%").map { it.id.value } shouldBe listOf("s2")
+        catalogService.search("50%").map { it.id.value } shouldBe listOf("s2")
+    }
+
+    @Test
     fun `삭제된 곡은 검색되지 않고, 빈 검색어는 빈 결과다`() {
         catalogService.register(song("s1", title = "아리랑"))
         catalogService.delete(SongId("s1"))
