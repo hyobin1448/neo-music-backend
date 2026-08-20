@@ -50,6 +50,23 @@ class PlaylistPersistenceAdapterTest @Autowired constructor(
     }
 
     @Test
+    fun `수정하면 낙관적 락 버전이 증가한다`() {
+        val saved = adapter.save(
+            Playlist.create(1, PlaylistName.of("v")).apply { addSong("a") },
+        )
+        em.flush(); em.clear()
+        val versionBefore = em.find(PlaylistJpaEntity::class.java, saved.id).version
+
+        val loaded = adapter.findById(saved.id!!)!!
+        loaded.addSong("b")
+        adapter.save(loaded)
+        em.flush(); em.clear()
+        val versionAfter = em.find(PlaylistJpaEntity::class.java, saved.id).version
+
+        versionAfter shouldBe versionBefore + 1
+    }
+
+    @Test
     fun `소유자별 목록을 생성 순으로 조회한다`() {
         adapter.save(Playlist.create(ownerId = 1, name = PlaylistName.of("첫번째")))
         adapter.save(Playlist.create(ownerId = 1, name = PlaylistName.of("두번째")))

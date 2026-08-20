@@ -12,6 +12,7 @@ import jakarta.persistence.OrderColumn
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import org.hibernate.annotations.Fetch
 import org.hibernate.annotations.FetchMode
 import java.time.Instant
@@ -44,6 +45,10 @@ class PlaylistJpaEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
+
+    // 낙관적 락: 동시 수정 시 두 번째 커밋을 충돌로 감지(lost update 방지)
+    @Version
+    var version: Long = 0
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant = Instant.now()

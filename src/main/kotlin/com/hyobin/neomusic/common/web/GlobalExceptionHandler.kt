@@ -11,6 +11,7 @@ import com.hyobin.neomusic.catalog.domain.SongNotFoundException
 import com.hyobin.neomusic.playlist.domain.PlaylistNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
+import org.springframework.orm.ObjectOptimisticLockingFailureException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -29,6 +30,11 @@ class GlobalExceptionHandler {
     @ExceptionHandler(SongAlreadyExistsException::class)
     fun handleSongConflict(e: SongAlreadyExistsException): ProblemDetail =
         problem(HttpStatus.CONFLICT, e.message)
+
+    // 낙관적 락 충돌(동시 수정) → 409. 클라이언트는 다시 읽어 재시도하면 된다.
+    @ExceptionHandler(ObjectOptimisticLockingFailureException::class)
+    fun handleOptimisticLock(e: ObjectOptimisticLockingFailureException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "다른 요청이 먼저 수정했습니다. 다시 시도해 주세요.")
 
     @ExceptionHandler(InvalidCredentialsException::class)
     fun handleUnauthorized(e: InvalidCredentialsException): ProblemDetail =
