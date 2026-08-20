@@ -56,6 +56,7 @@ com.hyobin.neomusic
 - **애그리거트 불변식을 도메인이 강제** — 예: "한 곡에 같은 언어의 오디오는 하나만". REST로 우회 입력해도 도메인에서 막혀 `400`.
 - **값 객체(Value Object)** — `SongId`, `Lang`, `StorageKey` 등이 생성 시점에 자기 검증 → 이후 코드는 항상 유효한 값만 다룸.
 - **델타 동기화** — 변경 때마다 전역 버전을 올려 곡에 스탬프. `GET /catalog?since=N`은 N 이후 바뀐 곡 + 삭제된 id만 반환. 삭제는 물리 삭제가 아니라 tombstone이라 앱에도 "삭제됨"이 전파됨.
+- **서명 다운로드 URL** — 저장 키를 그대로 노출하지 않고, HMAC 서명 + 만료 시각이 붙은 URL로만 파일을 받게 함. 카탈로그 응답이 키를 서명 URL로 변환해 내려줌. 저장소는 `FileStoragePort`로 추상화(로컬 → S3 교체 용이).
 - **불필요한 전체 시큐리티 배제** — 엔드포인트를 막지 않도록 BCrypt만 사용하고, 경량 JWT 필터 + ArgumentResolver로 인증을 직접 조립.
 
 ---
@@ -85,7 +86,9 @@ com.hyobin.neomusic
 | POST | `/admin/songs` | 곡 등록 (중복 시 409) | 관리자 |
 | PUT | `/admin/songs/{id}` | 곡 수정 (없으면 404) | 관리자 |
 | DELETE | `/admin/songs/{id}` | 곡 삭제 (소프트) | 관리자 |
+| POST | `/admin/files` | 파일 업로드 → key·checksum 반환 | 관리자 |
 | PUT | `/admin/members/{id}/password` | 비밀번호 초기화 | 관리자 |
+| GET | `/files/{key}` | 파일 다운로드 (서명 URL 필요) | 서명 |
 
 인증이 필요한 요청은 헤더에 `Authorization: Bearer <accessToken>`.
 
@@ -113,7 +116,7 @@ com.hyobin.neomusic
 - [x] 인증 (회원가입/로그인/JWT/잠금)
 - [x] 관리자 곡·회원 관리
 - [x] Swagger / OpenAPI 문서
-- [ ] 파일 스토리지 (StorageKey → signed URL)
+- [x] 파일 스토리지 (업로드 + 서명 다운로드 URL)
 - [ ] 곡 검색 (제목/가사)
 - [ ] 플레이리스트
 - [ ] 관리자 웹 UI
