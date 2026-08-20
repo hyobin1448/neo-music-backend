@@ -33,3 +33,8 @@ neomusic:
     nickname: admin
     password: admin1234
     enabled: true
+
+  # 파일 저장소 (로컬 파일시스템). 운영에선 S3 등으로 어댑터 교체
+  storage:
+    local:
+      base-dir: ./storage
