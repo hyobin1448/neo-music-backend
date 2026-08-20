@@ -15,4 +15,7 @@ interface LoadSongPort {
 
     /** lastModifiedVersion > version 인 곡(삭제된 곡 포함). 델타 동기화에 사용. */
     fun findChangedSince(version: Long): List<Song>
+
+    /** 삭제되지 않은 곡 중 제목/아티스트에 검색어가 포함된 곡(대소문자 무시). */
+    fun searchActive(query: String): List<Song>
 }

@@ -3,6 +3,7 @@ package com.hyobin.neomusic.catalog.application
 import com.hyobin.neomusic.catalog.application.port.inbound.DeleteSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.GetCatalogUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.RegisterSongUseCase
+import com.hyobin.neomusic.catalog.application.port.inbound.SearchSongsUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.UpdateSongUseCase
 import com.hyobin.neomusic.catalog.application.port.outbound.CatalogVersionPort
 import com.hyobin.neomusic.catalog.application.port.outbound.LoadSongPort
@@ -23,7 +24,7 @@ class CatalogService(
     private val savePort: SaveSongPort,
     private val loadPort: LoadSongPort,
     private val versionPort: CatalogVersionPort,
-) : RegisterSongUseCase, UpdateSongUseCase, DeleteSongUseCase, GetCatalogUseCase {
+) : RegisterSongUseCase, UpdateSongUseCase, DeleteSongUseCase, GetCatalogUseCase, SearchSongsUseCase {
 
     /** 곡 신규 등록: 같은 id가 이미 있으면 거부. 전역 버전을 올려 스탬프해 저장. */
     @Transactional
@@ -48,6 +49,14 @@ class CatalogService(
         song.markDeleted()
         val version = versionPort.next()
         savePort.save(song, version)
+    }
+
+    /** 곡 검색. 검색어가 비면 조회하지 않고 빈 결과. */
+    @Transactional(readOnly = true)
+    override fun search(query: String): List<Song> {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return emptyList()
+        return loadPort.searchActive(trimmed)
     }
 
     /** 카탈로그 동기화 조회. */

@@ -57,4 +57,7 @@ class SongPersistenceAdapter(
 
     override fun findChangedSince(version: Long): List<Song> =
         repository.findByLastModifiedVersionGreaterThan(version).map { it.toDomain() }
+
+    override fun searchActive(query: String): List<Song> =
+        repository.searchActive(query).map { it.toDomain() }
 }

@@ -29,11 +29,11 @@ class CatalogServiceTest @Autowired constructor(
     private val catalogService: CatalogService,
 ) {
 
-    private fun song(id: String, title: String = "제목", order: Int = 0): Song =
+    private fun song(id: String, title: String = "제목", order: Int = 0, artist: String = "가수"): Song =
         Song.create(
             id = SongId(id),
             title = title,
-            artist = "가수",
+            artist = artist,
             displayOrder = order,
             tracks = listOf(
                 Track(Lang.of("ko"), "한국어", StorageKey("s/$id/ko.m4a"), 1000, 100, Checksum("c-$id")),
@@ -90,6 +90,25 @@ class CatalogServiceTest @Autowired constructor(
         val snapshot = catalogService.getCatalog(since = null)
         snapshot.changed.single().title shouldBe "수정본"
         snapshot.version shouldBe 2
+    }
+
+    @Test
+    fun `제목 또는 아티스트로 검색되고, 대소문자를 무시한다`() {
+        catalogService.register(song("s1", title = "Spring Day", artist = "방탄"))
+        catalogService.register(song("s2", title = "아리랑", artist = "전통"))
+
+        catalogService.search("spring").map { it.id.value } shouldBe listOf("s1")   // 대소문자 무시
+        catalogService.search("방탄").map { it.id.value } shouldBe listOf("s1")      // 아티스트 매칭
+        catalogService.search("아리").map { it.id.value } shouldBe listOf("s2")
+    }
+
+    @Test
+    fun `삭제된 곡은 검색되지 않고, 빈 검색어는 빈 결과다`() {
+        catalogService.register(song("s1", title = "아리랑"))
+        catalogService.delete(SongId("s1"))
+
+        catalogService.search("아리").shouldBeEmpty()
+        catalogService.search("   ").shouldBeEmpty()
     }
 
     @Test

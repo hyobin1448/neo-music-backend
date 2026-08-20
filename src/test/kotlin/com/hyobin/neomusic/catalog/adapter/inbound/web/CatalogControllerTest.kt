@@ -2,6 +2,7 @@ package com.hyobin.neomusic.catalog.adapter.inbound.web
 
 import com.hyobin.neomusic.catalog.application.CatalogSnapshot
 import com.hyobin.neomusic.catalog.application.port.inbound.GetCatalogUseCase
+import com.hyobin.neomusic.catalog.application.port.inbound.SearchSongsUseCase
 import com.hyobin.neomusic.catalog.domain.Checksum
 import com.hyobin.neomusic.catalog.domain.Lang
 import com.hyobin.neomusic.catalog.domain.Lyric
@@ -33,6 +34,9 @@ class CatalogControllerTest {
 
     @MockBean
     lateinit var getCatalogUseCase: GetCatalogUseCase
+
+    @MockBean
+    lateinit var searchSongsUseCase: SearchSongsUseCase
 
     @MockBean
     lateinit var signedUrl: SignedUrlPort
@@ -69,6 +73,23 @@ class CatalogControllerTest {
             jsonPath("$.changed[0].tracks[0].audioUrl") { value("/files/s/ko.m4a?sig=AUDIO") }
             jsonPath("$.changed[0].lyrics[0].imageUrls[0]") { value("/files/s/ko.png?sig=IMG") }
             jsonPath("$.deleted[0]") { value("song_009") }
+        }
+    }
+
+    @Test
+    fun `GET catalog search는 매칭된 곡 목록을 반환한다`() {
+        given(searchSongsUseCase.search("아리")).willReturn(listOf(sampleSong()))
+        given(signedUrl.sign("covers/song_001.jpg")).willReturn("/files/cover?sig=C")
+        given(signedUrl.sign("s/ko.m4a")).willReturn("/files/audio?sig=A")
+        given(signedUrl.sign("s/ko.png")).willReturn("/files/img?sig=I")
+
+        mockMvc.get("/catalog/search") {
+            param("q", "아리")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.query") { value("아리") }
+            jsonPath("$.results[0].id") { value("song_001") }
+            jsonPath("$.results[0].tracks[0].audioUrl") { value("/files/audio?sig=A") }
         }
     }
 }
