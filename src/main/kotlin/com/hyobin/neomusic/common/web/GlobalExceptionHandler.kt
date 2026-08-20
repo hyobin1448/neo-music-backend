@@ -8,6 +8,7 @@ import com.hyobin.neomusic.auth.domain.NicknameAlreadyExistsException
 import com.hyobin.neomusic.auth.domain.UnauthenticatedException
 import com.hyobin.neomusic.catalog.domain.SongAlreadyExistsException
 import com.hyobin.neomusic.catalog.domain.SongNotFoundException
+import com.hyobin.neomusic.playlist.domain.PlaylistNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -51,6 +52,10 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(MemberNotFoundException::class)
     fun handleMemberNotFound(e: MemberNotFoundException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, e.message)
+
+    @ExceptionHandler(PlaylistNotFoundException::class)
+    fun handlePlaylistNotFound(e: PlaylistNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, e.message)
 
     // 도메인 값 객체 검증 실패(빈 값, 길이 등) → 400
