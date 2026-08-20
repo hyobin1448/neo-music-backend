@@ -12,6 +12,8 @@ import jakarta.persistence.OrderColumn
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 import java.time.Instant
 
 /**
@@ -36,6 +38,7 @@ class PlaylistJpaEntity(
     )
     @OrderColumn(name = "position")
     @Column(name = "song_id", nullable = false)
+    @Fetch(FetchMode.SUBSELECT)   // 소유자 목록 조회 시 곡 목록을 한 번의 서브셀렉트로 로드 (N+1 방지)
     var songIds: MutableList<String> = mutableListOf(),
 ) {
     @Id

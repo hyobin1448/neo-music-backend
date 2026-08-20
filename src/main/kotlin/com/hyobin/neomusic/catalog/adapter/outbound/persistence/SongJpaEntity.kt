@@ -9,6 +9,8 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 import java.time.Instant
 
 /**
@@ -43,12 +45,16 @@ class SongJpaEntity(
     var isDeleted: Boolean,
 ) {
     // 자식들은 곡과 생명주기를 함께한다 (곡 저장 시 같이 저장, 곡에서 빠지면 삭제)
+    // @Fetch(SUBSELECT): 여러 곡을 조회할 때 자식들을 곡마다가 아니라 '한 번의 서브셀렉트'로 모아 로드 → N+1 방지
+    // (tracks/lyrics 두 컬렉션을 동시에 join fetch 하면 카티전 곱이 되므로 SUBSELECT 를 택함)
     @OneToMany(cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "song_id")
+    @Fetch(FetchMode.SUBSELECT)
     var tracks: MutableList<TrackJpaEntity> = mutableListOf()
 
     @OneToMany(cascade = [CascadeType.ALL], orphanRemoval = true)
     @JoinColumn(name = "song_id")
+    @Fetch(FetchMode.SUBSELECT)
     var lyrics: MutableList<LyricJpaEntity> = mutableListOf()
 
     @Column(name = "created_at", nullable = false)

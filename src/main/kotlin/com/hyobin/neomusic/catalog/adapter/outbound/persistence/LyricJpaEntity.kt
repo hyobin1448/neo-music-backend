@@ -13,6 +13,8 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.OrderColumn
 import jakarta.persistence.Table
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 
 /**
  * DB 테이블용 가사 엔티티.
@@ -36,5 +38,6 @@ class LyricJpaEntity(
     @CollectionTable(name = "lyric_image", joinColumns = [JoinColumn(name = "lyric_id")])
     @OrderColumn(name = "idx")
     @Column(name = "image_key", nullable = false)
+    @Fetch(FetchMode.SUBSELECT)
     var imageKeys: MutableList<String> = mutableListOf()
 }
