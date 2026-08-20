@@ -40,6 +40,9 @@ class AdminSongControllerTest {
     @MockBean
     lateinit var deleteSongUseCase: DeleteSongUseCase
 
+    @MockBean
+    lateinit var assembler: CatalogResponseAssembler
+
     private val validBody = """
         {
           "id": "song_001",

@@ -33,6 +33,7 @@ class AdminSongController(
     private val registerSongUseCase: RegisterSongUseCase,
     private val updateSongUseCase: UpdateSongUseCase,
     private val deleteSongUseCase: DeleteSongUseCase,
+    private val assembler: CatalogResponseAssembler,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -42,7 +43,7 @@ class AdminSongController(
     ): SongResponse {
         user.requireAdmin()
         val saved = registerSongUseCase.register(request.toDomain())
-        return SongResponse.from(saved)
+        return assembler.toSongResponse(saved)
     }
 
     @PutMapping("/{id}")
@@ -53,7 +54,7 @@ class AdminSongController(
     ): SongResponse {
         user.requireAdmin()
         val saved = updateSongUseCase.update(request.toDomain(id))
-        return SongResponse.from(saved)
+        return assembler.toSongResponse(saved)
     }
 
     @DeleteMapping("/{id}")

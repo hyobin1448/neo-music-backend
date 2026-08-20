@@ -17,9 +17,10 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/catalog")
 class CatalogController(
     private val getCatalogUseCase: GetCatalogUseCase,
+    private val assembler: CatalogResponseAssembler,
 ) {
     @GetMapping
     fun getCatalog(
         @RequestParam(required = false) since: Long?,
-    ): CatalogResponse = CatalogResponse.from(getCatalogUseCase.getCatalog(since))
+    ): CatalogResponse = assembler.toResponse(getCatalogUseCase.getCatalog(since))
 }
