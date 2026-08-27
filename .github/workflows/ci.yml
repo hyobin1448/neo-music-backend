@@ -9,6 +9,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # 대부분의 테스트는 H2 로 돌지만, 스키마·델타 동기화는 실제 PostgreSQL 에서 검증한다.
+    # (H2 는 타입·예약어를 느슨하게 받아줘서 운영 DB 에서만 터지는 문제를 놓친다)
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: neomusic
+          POSTGRES_USER: neomusic
+          POSTGRES_PASSWORD: neomusic_local_dev
+        ports:
+          - 5433:5432          # 로컬 docker-compose 와 같은 포트로 맞춘다
+        options: >-
+          --health-cmd "pg_isready -U neomusic -d neomusic"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,6 +42,12 @@ jobs:
 
       - name: Build & Test
         run: ./gradlew build --no-daemon
+        env:
+          NEOMUSIC_DB_HOST: localhost
+          NEOMUSIC_DB_PORT: 5433
+          NEOMUSIC_DB_URL: jdbc:postgresql://localhost:5433/neomusic
+          NEOMUSIC_DB_USER: neomusic
+          NEOMUSIC_DB_PASSWORD: neomusic_local_dev
 
       - name: Upload test report
         if: always()          # 실패해도 리포트는 올려 원인 확인 가능하게

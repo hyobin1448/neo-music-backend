@@ -11,6 +11,7 @@ plugins {
 group = "com.hyobin"
 version = "0.1.0"
 
+
 java {
     sourceCompatibility = JavaVersion.VERSION_17
 }
@@ -41,8 +42,10 @@ dependencies {
     // API 문서: OpenAPI 3 + Swagger UI (브라우저에서 API 확인/호출)
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
 
-    // 개발/테스트용 인메모리 DB
+    // 개발/테스트용 인메모리 DB (기본 프로필)
     runtimeOnly("com.h2database:h2")
+    // 운영/검증용 실제 DB (postgres 프로필 · docker compose 로 기동)
+    runtimeOnly("org.postgresql:postgresql")
 
     // 테스트: Kotest(코틀린 테스트) + MockK(모킹) + ArchUnit(아키텍처 규칙 검증)
     testImplementation("org.springframework.boot:spring-boot-starter-test")

@@ -1,0 +1,29 @@
+# PostgreSQL 프로필 — 실제 DB 로 띄워 확인할 때 사용한다.
+#
+#   docker compose up -d
+#   ./gradlew bootRun --args='--spring.profiles.active=postgres'
+#
+# 기본(H2) 프로필은 설정 없이 바로 뜨게 두고, 실제 DB 는 이 프로필로 분리했다.
+# H2 는 타입·예약어·제약조건을 느슨하게 받아주기 때문에, 매핑이 진짜 맞는지는
+# PostgreSQL 에서 확인해야 한다. (PostgresCatalogSyncIntegrationTest 참고)
+
+spring:
+  datasource:
+    url: ${NEOMUSIC_DB_URL:jdbc:postgresql://localhost:5433/neomusic}
+    driver-class-name: org.postgresql.Driver
+    username: ${NEOMUSIC_DB_USER:neomusic}
+    password: ${NEOMUSIC_DB_PASSWORD:neomusic_local_dev}
+
+  jpa:
+    hibernate:
+      # 로컬 확인용 프로필이라 엔티티 기준으로 스키마를 맞춘다.
+      # 운영에서는 validate 로 두고 Flyway 등 마이그레이션 도구로 스키마를 관리해야 한다.
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # 실제 DB 를 쓰는 프로필에서는 H2 콘솔이 필요 없다
+  h2:
+    console:
+      enabled: false
