@@ -36,7 +36,7 @@ Flutter 앱 *Neo Music*의 실제 서버이자, 아키텍처·테스트·API 설
 | 언어/런타임 | Kotlin 1.9, Java 17 |
 | 프레임워크 | Spring Boot 3.3, Spring Web, Spring Data JPA |
 | 인증 | JWT (jjwt), BCrypt (spring-security-crypto) |
-| DB | H2 (개발) — JPA로 교체 용이 |
+| DB | H2 (기본 · 인메모리) / **PostgreSQL 16** (`postgres` 프로필 · docker compose) |
 | 문서 | springdoc-openapi 3 (Swagger UI) |
 | 테스트 | Kotest, MockK, Spring Boot Test, ArchUnit |
 
@@ -76,9 +76,14 @@ com.hyobin.neomusic
 ## 🚀 실행
 
 ```bash
-./gradlew bootRun
-# 또는
-./gradlew bootJar && java -jar build/libs/neo-music-backend-0.1.0.jar
+./gradlew bootRun          # 기본 프로필 — H2 인메모리, 설정 없이 바로 뜬다
+```
+
+실제 DB(PostgreSQL)로 띄우려면:
+
+```bash
+docker compose up -d                                              # postgres:16 (호스트 5433)
+./gradlew bootRun --args='--spring.profiles.active=postgres'
 ```
 
 - API: `http://localhost:8080`
@@ -117,12 +122,13 @@ com.hyobin.neomusic
 ./gradlew test
 ```
 
-**총 102개 통과.**
+**총 104개 통과.**
 
 - **단위** — 도메인 규칙(Kotest), 유스케이스(MockK)
 - **슬라이스** — 컨트롤러 인증/인가(`@WebMvcTest`), 영속성 왕복(`@DataJpaTest`)
 - **통합** — 델타 동기화 시나리오, 로그인 잠금(실 DB 커밋 검증)
 - **아키텍처** — 계층·컨텍스트 의존 방향을 ArchUnit 으로 검증 (아래)
+- **실 DB** — 스키마 생성과 델타 동기화를 **실제 PostgreSQL** 에서 검증 (아래)
 - **쿼리 카운트** — 목록 조회의 N+1 재발을 실제 발생 쿼리 수로 감시(`SongSearchQueryCountTest`)
 
 ### 아키텍처 테스트 (ArchUnit)
@@ -138,6 +144,21 @@ com.hyobin.neomusic
 | 컨텍스트 간 순환 의존이 없다 | 나중에 떼어내거나 따로 배포할 수 없게 되는 것 |
 
 > `application` 의 `@Service`·`@Transactional` 은 **의도적으로 허용**합니다. 빈 등록과 트랜잭션 경계 선언에만 쓰고, 그 외 스프링 기능(web·data·http)이 유스케이스로 새어 들어오는 것은 규칙으로 막습니다. 순수성을 100% 고집하기보다 실용적인 선을 정하고 **그 선을 테스트로 지키는 쪽**을 택했습니다.
+
+### 실제 PostgreSQL 검증
+
+H2 는 타입·예약어·제약조건을 느슨하게 받아주기 때문에, **H2 에서는 통과하지만 운영 DB 에서 깨지는** 매핑 문제를 놓칩니다.
+그래서 스키마 생성과 핵심 시나리오(델타 동기화 등록→수정→삭제)만큼은 실제 PostgreSQL 에서 확인합니다.
+
+```bash
+docker compose up -d && ./gradlew test
+```
+
+- CI 에서는 `postgres` **서비스 컨테이너**가 항상 떠 있어 매 푸시마다 실행됩니다.
+- 로컬에 DB 가 없으면 이 테스트는 **실패가 아니라 건너뜁니다**. DB 없이 클론한 사람의 `./gradlew test` 를 깨지 않기 위해서입니다.
+- → [`PostgresCatalogSyncIntegrationTest.kt`](src/test/kotlin/com/hyobin/neomusic/catalog/PostgresCatalogSyncIntegrationTest.kt)
+
+> `postgres` 프로필은 로컬 확인용이라 `ddl-auto: update` 를 씁니다. 운영에서는 `validate` 로 두고 Flyway 등 마이그레이션 도구로 스키마를 관리해야 합니다.
 
 > 통합 테스트로 실제 버그를 잡은 사례: 로그인 실패 카운트를 저장한 뒤 예외를 던지자
 > `@Transactional`이 롤백하며 카운트가 취소되어 계정이 잠기지 않던 문제 →
@@ -157,4 +178,5 @@ com.hyobin.neomusic
 - [x] CI (GitHub Actions — 푸시마다 빌드·테스트)
 - [x] 관리자 웹 UI (Thymeleaf — 로그인/곡 등록·업로드·삭제, `/admin`)
 - [x] 아키텍처 테스트 (ArchUnit — 계층·컨텍스트 의존 방향 강제)
+- [x] 실제 PostgreSQL 통합 테스트 (docker compose + CI 서비스 컨테이너)
 - [ ] 가사 텍스트 검색 (가사 구조화 후)
