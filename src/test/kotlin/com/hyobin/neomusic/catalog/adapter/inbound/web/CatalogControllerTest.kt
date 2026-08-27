@@ -57,8 +57,10 @@ class CatalogControllerTest {
             version = 2,
             changed = listOf(sampleSong()),
             deleted = listOf(SongId("song_009")),
+            hasMore = false,
+            nextSince = 2,
         )
-        given(getCatalogUseCase.getCatalog(null)).willReturn(snapshot)
+        given(getCatalogUseCase.getCatalog(null, GetCatalogUseCase.DEFAULT_LIMIT)).willReturn(snapshot)
         // 저장 키 → (가짜) 서명 URL 로 변환된다
         given(signedUrl.sign("covers/song_001.jpg")).willReturn("/files/covers/song_001.jpg?sig=COVER")
         given(signedUrl.sign("s/ko.m4a")).willReturn("/files/s/ko.m4a?sig=AUDIO")

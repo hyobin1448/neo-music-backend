@@ -1,5 +1,6 @@
 package com.hyobin.neomusic.catalog.adapter.outbound.persistence
 
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -9,10 +10,28 @@ import org.springframework.data.repository.query.Param
  */
 interface SongJpaRepository : JpaRepository<SongJpaEntity, String> {
 
-    // 메서드 이름만으로 쿼리가 자동 생성된다 (Spring Data JPA)
-    fun findByIsDeletedFalseOrderByDisplayOrderAsc(): List<SongJpaEntity>
+    /**
+     * 첫 동기화: 삭제되지 않은 곡을 동기화 버전 순으로.
+     * (표시 순서 displayOrder 가 아니라 버전 순 — 커서로 이어받아야 하므로)
+     */
+    @Query(
+        """
+        select s from SongJpaEntity s
+        where s.isDeleted = false and s.lastModifiedVersion > :after
+        order by s.lastModifiedVersion asc
+        """,
+    )
+    fun findActiveAfter(@Param("after") after: Long, pageable: Pageable): List<SongJpaEntity>
 
-    fun findByLastModifiedVersionGreaterThan(version: Long): List<SongJpaEntity>
+    /** 델타 동기화: 버전 이후 바뀐 곡(삭제 tombstone 포함)을 버전 순으로. */
+    @Query(
+        """
+        select s from SongJpaEntity s
+        where s.lastModifiedVersion > :after
+        order by s.lastModifiedVersion asc
+        """,
+    )
+    fun findChangedAfter(@Param("after") after: Long, pageable: Pageable): List<SongJpaEntity>
 
     /**
      * 삭제 안 된 곡 중 제목/아티스트에 검색어 포함(대소문자 무시).

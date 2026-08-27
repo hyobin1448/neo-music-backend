@@ -59,26 +59,32 @@ class CatalogService(
         return loadPort.searchActive(trimmed)
     }
 
-    /** 카탈로그 동기화 조회. */
+    /**
+     * 카탈로그 동기화 조회 (커서 기반, 한 번에 limit 건까지).
+     *
+     * 곡이 늘어도 한 응답이 무한정 커지지 않도록 자른다. 남은 게 있으면 hasMore=true 와
+     * 함께 nextSince 를 내려주고, 클라는 그 값으로 다시 요청해 이어받는다.
+     */
     @Transactional(readOnly = true)
-    override fun getCatalog(since: Long?): CatalogSnapshot {
+    override fun getCatalog(since: Long?, limit: Int): CatalogSnapshot {
+        val capped = limit.coerceIn(1, GetCatalogUseCase.MAX_LIMIT)
         val currentVersion = versionPort.current()
 
-        if (since == null) {
-            // 첫 동기화: 살아있는 곡 전체만 (삭제 곡은 애초에 보낼 필요 없음)
-            return CatalogSnapshot(
-                version = currentVersion,
-                changed = loadPort.findAllActive(),
-                deleted = emptyList(),
-            )
+        // 첫 동기화: 살아있는 곡만 (삭제 곡은 애초에 보낼 필요 없음)
+        // 델타: since 이후 바뀐 곡을 '변경'과 '삭제'로 가른다
+        val page = if (since == null) {
+            loadPort.findActivePage(afterVersion = 0, limit = capped)
+        } else {
+            loadPort.findChangedPage(afterVersion = since, limit = capped)
         }
 
-        // 델타: since 이후 바뀐 곡들을 '변경'과 '삭제'로 가른다
-        val changedOrDeleted = loadPort.findChangedSince(since)
         return CatalogSnapshot(
             version = currentVersion,
-            changed = changedOrDeleted.filterNot { it.isDeleted },
-            deleted = changedOrDeleted.filter { it.isDeleted }.map { it.id },
+            changed = page.songs.filterNot { it.isDeleted },
+            deleted = page.songs.filter { it.isDeleted }.map { it.id },
+            hasMore = page.hasMore,
+            // 덜 받았으면 이어받을 지점(이 페이지 마지막 곡의 버전)을, 다 받았으면 현재 버전을 준다.
+            nextSince = if (page.hasMore) page.lastVersion ?: currentVersion else currentVersion,
         )
     }
 }

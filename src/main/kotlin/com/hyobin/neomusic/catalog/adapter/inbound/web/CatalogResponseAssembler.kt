@@ -20,6 +20,8 @@ class CatalogResponseAssembler(
         version = snapshot.version,
         changed = snapshot.changed.map { toSongResponse(it) },
         deleted = snapshot.deleted.map { it.value },
+        hasMore = snapshot.hasMore,
+        nextSince = snapshot.nextSince,
     )
 
     fun toSongResponse(song: Song): SongResponse = SongResponse(

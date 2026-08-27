@@ -11,6 +11,10 @@ data class CatalogResponse(
     val version: Long,
     val changed: List<SongResponse>,
     val deleted: List<String>,
+    /** 아직 못 받은 변경분이 남아 있는가. true 면 nextSince 로 한 번 더 요청한다. */
+    val hasMore: Boolean,
+    /** 다음 요청의 `?since=` 에 그대로 넣을 값. version 이 아니라 이 값을 써야 한다. */
+    val nextSince: Long,
 )
 
 data class SongResponse(
