@@ -82,6 +82,20 @@ GET /catalog?since={version}
 - 응답 DTO로 변환할 때 **StoragePort가 signed URL 생성** → 클라는 URL로 다운로드
 - 저장소(로컬→S3) 교체해도 도메인·DB 불변
 
+### 서명 URL 재발급 계약
+
+```
+GET /catalog/songs/{id}
+```
+- 응답 = 카탈로그의 `changed[]` 원소와 **완전히 같은 `SongResponse`** (같은 조립기를 재사용)
+- 서명은 **응답을 조립하는 시점에** 새로 찍힌다 → 같은 곡을 다시 부르면 `expires` 가 그만큼 뒤로 밀린다
+- 없는 곡 · `isDeleted=true` 인 곡 → 둘 다 `404` (삭제된 곡의 파일을 다시 받을 이유가 없다)
+
+**왜 필요한가**: 서명 URL 유효 시간은 `neomusic.storage.url.valid-seconds`(기본 600초)다.
+앱의 첫 실행 전체 다운로드가 10분을 넘기면 뒤쪽 파일 URL 은 쓰기도 전에 만료된다.
+페이지를 통째로 다시 받는 대신(곡별 version 이 없어 정밀하게 고를 수 없다),
+또 TTL 을 키워 창만 넓히는 대신, **만료된 곡만 집어서** 다시 서명받는다.
+
 ## 확정 결정 로그
 1. URL 대신 **저장 키** 저장 + API에서 signed URL 생성
 2. `rev` **제거** (lastModifiedVersion + checksum으로 충분, 중복 상태 제거)

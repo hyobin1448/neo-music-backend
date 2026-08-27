@@ -92,6 +92,36 @@ class CatalogServiceTest @Autowired constructor(
         snapshot.version shouldBe 2
     }
 
+    // ── 곡 단위 조회 (서명 URL 재발급 엔드포인트가 쓰는 경로) ──────────
+
+    @Test
+    fun `곡 하나를 id로 조회한다`() {
+        catalogService.register(song("song_001", title = "아리랑"))
+
+        val found = catalogService.getSong(SongId("song_001"))
+
+        found.id shouldBe SongId("song_001")
+        found.title shouldBe "아리랑"
+    }
+
+    @Test
+    fun `없는 곡을 조회하면 SongNotFound로 거부한다`() {
+        shouldThrow<SongNotFoundException> {
+            catalogService.getSong(SongId("nope"))
+        }
+    }
+
+    @Test
+    fun `삭제된 곡을 조회하면 없는 곡과 똑같이 SongNotFound로 거부한다`() {
+        catalogService.register(song("song_001"))
+        catalogService.delete(SongId("song_001"))   // 소프트 삭제(tombstone) — 행은 남아 있다
+
+        // 행이 남아 있어도 파일을 다시 받을 이유가 없으므로 조회는 막는다
+        shouldThrow<SongNotFoundException> {
+            catalogService.getSong(SongId("song_001"))
+        }
+    }
+
     @Test
     fun `제목 또는 아티스트로 검색되고, 대소문자를 무시한다`() {
         catalogService.register(song("s1", title = "Spring Day", artist = "방탄"))

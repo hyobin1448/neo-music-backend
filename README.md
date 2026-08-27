@@ -70,6 +70,8 @@ com.hyobin.neomusic
 - **커서 페이징** — 응답이 무한정 커지지 않도록 `limit` 으로 자르고, 남으면 `hasMore` 와 `nextSince` 를 준다. 전역 버전은 변경 1건마다 하나씩 발급돼 **곡마다 값이 겹치지 않으므로** `lastModifiedVersion` 하나로 전체 순서가 정해진다 → 그대로 커서가 된다. offset 페이징과 달리 **조회 중 곡이 바뀌어도 건너뛰거나 중복되지 않는다.**
   > 덜 받았을 때 `version`(전역 현재 버전)을 다음 `since` 로 쓰면 안 받은 페이지를 통째로 건너뛴다. 그래서 이어받을 지점을 `nextSince` 로 따로 내려준다. 쓰는 쪽이 가장 하기 쉬운 실수라 테스트로 박아뒀다(`CatalogPagingTest`).
 - **서명 다운로드 URL** — 저장 키를 그대로 노출하지 않고, HMAC 서명 + 만료 시각이 붙은 URL로만 파일을 받게 함. 카탈로그 응답이 키를 서명 URL로 변환해 내려줌. 저장소는 `FileStoragePort`로 추상화(로컬 → S3 교체 용이).
+- **곡 단위 서명 URL 재발급** — 서명 URL 은 발급 시점부터 짧게만(기본 600초) 유효하다. 앱의 첫 실행 전체 다운로드가 그보다 길어지면 **뒤쪽 곡의 URL 이 이미 죽어 있다.** 그래서 `GET /catalog/songs/{id}` 로 곡 하나만 다시 물어보면 응답을 조립할 때 서명이 새로 찍힌다 — 카탈로그 페이지를 통째로 다시 받거나 TTL 을 늘려 창만 넓히지 않아도 된다. 삭제된 곡은 파일을 다시 받을 이유가 없으므로 없는 곡과 똑같이 `404`.
+  > "두 번 호출하면 만료 시각이 실제로 밀린다"가 이 API 의 전부라, 테스트에서는 서명기를 모킹하지 않고 진짜 HMAC 어댑터에 조작 가능한 `Clock` 을 넣어 검증한다(`CatalogSongControllerTest`).
 - **아키텍처를 테스트로 강제** — "의존성은 안쪽을 향한다"를 README 문장으로만 두지 않고 **ArchUnit 규칙 7개**로 고정했다. 규칙을 깨는 import 가 들어오면 CI 가 실패해 머지를 막는다. → [`ArchitectureTest.kt`](src/test/kotlin/com/hyobin/neomusic/ArchitectureTest.kt)
 - **바운디드 컨텍스트 간 경계** — 컨텍스트끼리는 공개된 `application` 계층으로만 대화하고 서로의 `domain`·`adapter` 는 참조하지 않는다. 인증·인가 예외처럼 모든 컨텍스트에 걸치는 개념은 `common/domain` 으로 올려 특정 컨텍스트에 종속되지 않게 했다.
 - **불필요한 전체 시큐리티 배제** — 엔드포인트를 막지 않도록 BCrypt만 사용하고, 경량 JWT 필터 + ArgumentResolver로 인증을 직접 조립.
@@ -104,6 +106,7 @@ docker compose up -d                                              # postgres:16 
 | POST | `/auth/signup` | 회원가입 | 공개 |
 | POST | `/auth/login` | 로그인 (JWT 발급) | 공개 |
 | GET | `/catalog` | 카탈로그 동기화 (`?since=` 델타, `?limit=` 페이지 크기) | 공개 |
+| GET | `/catalog/songs/{id}` | 곡 하나 조회 (서명 URL 재발급, 없거나 삭제된 곡은 404) | 공개 |
 | GET | `/catalog/search` | 곡 검색 (`?q=` 제목·아티스트) | 공개 |
 | POST/GET | `/playlists` | 플레이리스트 생성 / 내 목록 | 인증 |
 | PUT/DELETE | `/playlists/{id}` | 이름 변경 / 삭제 | 소유자 |
