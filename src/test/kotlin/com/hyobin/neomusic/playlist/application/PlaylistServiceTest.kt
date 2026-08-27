@@ -1,6 +1,6 @@
 package com.hyobin.neomusic.playlist.application
 
-import com.hyobin.neomusic.auth.domain.ForbiddenException
+import com.hyobin.neomusic.common.domain.ForbiddenException
 import com.hyobin.neomusic.playlist.domain.PlaylistNotFoundException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize

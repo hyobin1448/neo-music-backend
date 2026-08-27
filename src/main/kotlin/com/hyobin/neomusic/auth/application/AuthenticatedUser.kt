@@ -1,6 +1,6 @@
 package com.hyobin.neomusic.auth.application
 
-import com.hyobin.neomusic.auth.domain.ForbiddenException
+import com.hyobin.neomusic.common.domain.ForbiddenException
 import com.hyobin.neomusic.auth.domain.Role
 
 /**
