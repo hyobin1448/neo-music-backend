@@ -9,6 +9,11 @@ spring:
     username: sa
     password: ""
 
+  # 기본 프로필은 H2 인메모리라 스키마를 엔티티에서 바로 만든다.
+  # 마이그레이션(Flyway)은 실제 DB 를 쓰는 postgres 프로필에서만 돈다.
+  flyway:
+    enabled: false
+
   jpa:
     hibernate:
       ddl-auto: create-drop          # 엔티티 기준으로 스키마 자동 생성 (개발 편의)

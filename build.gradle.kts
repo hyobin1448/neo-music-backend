@@ -47,6 +47,10 @@ dependencies {
     // 운영/검증용 실제 DB (postgres 프로필 · docker compose 로 기동)
     runtimeOnly("org.postgresql:postgresql")
 
+    // 스키마 마이그레이션 — postgres 프로필에서만 활성화 (기본 H2 는 ddl-auto)
+    implementation("org.flywaydb:flyway-core")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
     // 테스트: Kotest(코틀린 테스트) + MockK(모킹) + ArchUnit(아키텍처 규칙 검증)
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.kotest:kotest-runner-junit5:5.9.1")

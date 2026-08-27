@@ -37,6 +37,7 @@ Flutter 앱 *Neo Music*의 실제 서버이자, 아키텍처·테스트·API 설
 | 프레임워크 | Spring Boot 3.3, Spring Web, Spring Data JPA |
 | 인증 | JWT (jjwt), BCrypt (spring-security-crypto) |
 | DB | H2 (기본 · 인메모리) / **PostgreSQL 16** (`postgres` 프로필 · docker compose) |
+| 마이그레이션 | **Flyway** (`postgres` 프로필) — 스키마는 SQL 로 관리, JPA 는 `validate` 로 검증만 |
 | 문서 | springdoc-openapi 3 (Swagger UI) |
 | 테스트 | Kotest, MockK, Spring Boot Test, ArchUnit |
 
@@ -158,7 +159,16 @@ docker compose up -d && ./gradlew test
 - 로컬에 DB 가 없으면 이 테스트는 **실패가 아니라 건너뜁니다**. DB 없이 클론한 사람의 `./gradlew test` 를 깨지 않기 위해서입니다.
 - → [`PostgresCatalogSyncIntegrationTest.kt`](src/test/kotlin/com/hyobin/neomusic/catalog/PostgresCatalogSyncIntegrationTest.kt)
 
-> `postgres` 프로필은 로컬 확인용이라 `ddl-auto: update` 를 씁니다. 운영에서는 `validate` 로 두고 Flyway 등 마이그레이션 도구로 스키마를 관리해야 합니다.
+### 스키마 마이그레이션 (Flyway)
+
+스키마를 `ddl-auto` 에 맡기고 있었더니, `docs/DATA_MODEL.md` 가 명시한 **인덱스와 유니크 제약이 실제 DB 에는 하나도 만들어지지 않고 있었습니다.**
+델타 동기화의 `WHERE last_modified_version > ?` — 이 API 에서 가장 자주 도는 쿼리 — 가 인덱스 없이 돌고 있었습니다.
+
+그래서 스키마를 SQL 로 옮기면서(`db/migration/V1__init_schema.sql`) 문서가 약속한 제약을 함께 복원했습니다.
+
+- `postgres` 프로필은 **Flyway 가 스키마를 만들고, JPA 는 `ddl-auto: validate` 로 검증만** 합니다.
+- 마이그레이션과 엔티티가 어긋나면 **앱이 아예 뜨지 않아** 스키마 드리프트가 테스트에서 바로 드러납니다.
+- 기본(H2) 프로필은 테스트 속도를 위해 `create-drop` 을 유지하고 Flyway 를 끕니다.
 
 > 통합 테스트로 실제 버그를 잡은 사례: 로그인 실패 카운트를 저장한 뒤 예외를 던지자
 > `@Transactional`이 롤백하며 카운트가 취소되어 계정이 잠기지 않던 문제 →
@@ -179,4 +189,5 @@ docker compose up -d && ./gradlew test
 - [x] 관리자 웹 UI (Thymeleaf — 로그인/곡 등록·업로드·삭제, `/admin`)
 - [x] 아키텍처 테스트 (ArchUnit — 계층·컨텍스트 의존 방향 강제)
 - [x] 실제 PostgreSQL 통합 테스트 (docker compose + CI 서비스 컨테이너)
+- [x] 스키마 마이그레이션 (Flyway — 문서가 약속한 인덱스·제약 복원, `validate` 로 드리프트 차단)
 - [ ] 가사 텍스트 검색 (가사 구조화 후)
