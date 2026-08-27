@@ -70,7 +70,8 @@ class SongPersistenceAdapterTest @Autowired constructor(
         adapter.save(reloaded, version = 2)
         em.flush(); em.clear()
 
-        adapter.findAll() shouldHaveSize 1                 // 행이 늘어나지 않음
+        // 행이 늘어나지 않음 (버전 0 이후 전체를 훑어도 한 건)
+        adapter.findChangedPage(afterVersion = 0, limit = 10).songs shouldHaveSize 1
         adapter.findById(SongId("song_002"))!!.title shouldBe "바뀐제목"
     }
 }

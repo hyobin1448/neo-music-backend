@@ -67,6 +67,8 @@ com.hyobin.neomusic
 - **애그리거트 불변식을 도메인이 강제** — 예: "한 곡에 같은 언어의 오디오는 하나만". REST로 우회 입력해도 도메인에서 막혀 `400`.
 - **값 객체(Value Object)** — `SongId`, `Lang`, `StorageKey` 등이 생성 시점에 자기 검증 → 이후 코드는 항상 유효한 값만 다룸.
 - **델타 동기화** — 변경 때마다 전역 버전을 올려 곡에 스탬프. `GET /catalog?since=N`은 N 이후 바뀐 곡 + 삭제된 id만 반환. 삭제는 물리 삭제가 아니라 tombstone이라 앱에도 "삭제됨"이 전파됨.
+- **커서 페이징** — 응답이 무한정 커지지 않도록 `limit` 으로 자르고, 남으면 `hasMore` 와 `nextSince` 를 준다. 전역 버전은 변경 1건마다 하나씩 발급돼 **곡마다 값이 겹치지 않으므로** `lastModifiedVersion` 하나로 전체 순서가 정해진다 → 그대로 커서가 된다. offset 페이징과 달리 **조회 중 곡이 바뀌어도 건너뛰거나 중복되지 않는다.**
+  > 덜 받았을 때 `version`(전역 현재 버전)을 다음 `since` 로 쓰면 안 받은 페이지를 통째로 건너뛴다. 그래서 이어받을 지점을 `nextSince` 로 따로 내려준다. 쓰는 쪽이 가장 하기 쉬운 실수라 테스트로 박아뒀다(`CatalogPagingTest`).
 - **서명 다운로드 URL** — 저장 키를 그대로 노출하지 않고, HMAC 서명 + 만료 시각이 붙은 URL로만 파일을 받게 함. 카탈로그 응답이 키를 서명 URL로 변환해 내려줌. 저장소는 `FileStoragePort`로 추상화(로컬 → S3 교체 용이).
 - **아키텍처를 테스트로 강제** — "의존성은 안쪽을 향한다"를 README 문장으로만 두지 않고 **ArchUnit 규칙 7개**로 고정했다. 규칙을 깨는 import 가 들어오면 CI 가 실패해 머지를 막는다. → [`ArchitectureTest.kt`](src/test/kotlin/com/hyobin/neomusic/ArchitectureTest.kt)
 - **바운디드 컨텍스트 간 경계** — 컨텍스트끼리는 공개된 `application` 계층으로만 대화하고 서로의 `domain`·`adapter` 는 참조하지 않는다. 인증·인가 예외처럼 모든 컨텍스트에 걸치는 개념은 `common/domain` 으로 올려 특정 컨텍스트에 종속되지 않게 했다.
@@ -101,7 +103,7 @@ docker compose up -d                                              # postgres:16 
 |---|---|---|---|
 | POST | `/auth/signup` | 회원가입 | 공개 |
 | POST | `/auth/login` | 로그인 (JWT 발급) | 공개 |
-| GET | `/catalog` | 카탈로그 동기화 (`?since=`로 델타) | 공개 |
+| GET | `/catalog` | 카탈로그 동기화 (`?since=` 델타, `?limit=` 페이지 크기) | 공개 |
 | GET | `/catalog/search` | 곡 검색 (`?q=` 제목·아티스트) | 공개 |
 | POST/GET | `/playlists` | 플레이리스트 생성 / 내 목록 | 인증 |
 | PUT/DELETE | `/playlists/{id}` | 이름 변경 / 삭제 | 소유자 |
@@ -123,7 +125,7 @@ docker compose up -d                                              # postgres:16 
 ./gradlew test
 ```
 
-**총 104개 통과.**
+**총 110개 통과.**
 
 - **단위** — 도메인 규칙(Kotest), 유스케이스(MockK)
 - **슬라이스** — 컨트롤러 인증/인가(`@WebMvcTest`), 영속성 왕복(`@DataJpaTest`)
@@ -178,7 +180,7 @@ docker compose up -d && ./gradlew test
 
 ## 🗺 로드맵
 
-- [x] 카탈로그 델타 동기화 (등록/수정/삭제)
+- [x] 카탈로그 델타 동기화 (등록/수정/삭제) + 커서 페이징
 - [x] 인증 (회원가입/로그인/JWT/잠금)
 - [x] 관리자 곡·회원 관리
 - [x] Swagger / OpenAPI 문서

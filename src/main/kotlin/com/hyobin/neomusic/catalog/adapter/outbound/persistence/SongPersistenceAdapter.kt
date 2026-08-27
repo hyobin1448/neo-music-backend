@@ -1,9 +1,11 @@
 package com.hyobin.neomusic.catalog.adapter.outbound.persistence
 
+import com.hyobin.neomusic.catalog.application.SongPage
 import com.hyobin.neomusic.catalog.application.port.outbound.LoadSongPort
 import com.hyobin.neomusic.catalog.application.port.outbound.SaveSongPort
 import com.hyobin.neomusic.catalog.domain.Song
 import com.hyobin.neomusic.catalog.domain.SongId
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Repository
 
 /**
@@ -49,14 +51,25 @@ class SongPersistenceAdapter(
     override fun findById(id: SongId): Song? =
         repository.findById(id.value).map { it.toDomain() }.orElse(null)
 
-    override fun findAll(): List<Song> =
-        repository.findAll().map { it.toDomain() }
+    override fun findActivePage(afterVersion: Long, limit: Int): SongPage =
+        toPage(repository.findActiveAfter(afterVersion, PageRequest.of(0, limit + 1)), limit)
 
-    override fun findAllActive(): List<Song> =
-        repository.findByIsDeletedFalseOrderByDisplayOrderAsc().map { it.toDomain() }
+    override fun findChangedPage(afterVersion: Long, limit: Int): SongPage =
+        toPage(repository.findChangedAfter(afterVersion, PageRequest.of(0, limit + 1)), limit)
 
-    override fun findChangedSince(version: Long): List<Song> =
-        repository.findByLastModifiedVersionGreaterThan(version).map { it.toDomain() }
+    /**
+     * limit + 1 건을 읽어와 마지막 한 건으로 "더 있는지"를 판단하고 잘라낸다.
+     * (COUNT 쿼리를 따로 날리지 않기 위해)
+     */
+    private fun toPage(fetched: List<SongJpaEntity>, limit: Int): SongPage {
+        val hasMore = fetched.size > limit
+        val page = if (hasMore) fetched.take(limit) else fetched
+        return SongPage(
+            songs = page.map { it.toDomain() },
+            lastVersion = page.lastOrNull()?.lastModifiedVersion,
+            hasMore = hasMore,
+        )
+    }
 
     override fun searchActive(query: String): List<Song> =
         repository.searchActive(escapeLike(query)).map { it.toDomain() }
