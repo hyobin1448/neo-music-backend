@@ -42,7 +42,7 @@
 - [x] Q7: 플레이리스트 → **여러 개 + 이름 + 곡 순서 지정 + 비공개(내 것만)**. 곡 추가/삭제/순서변경
 - [x] Q8: 파일 저장 → **지금은 보류**. 단, 코드는 **StoragePort로 추상화**(로컬/S3 어댑터 교체, signed URL). 실제 저장소는 나중에 결정
 - [x] 통계 → **Phase 2 nice-to-have** (재생/조회 집계). MVP 제외
-- [ ] 델타 동기화(버전/rev/checksum/tombstone)는 카탈로그 API 설계에 반영 (계획서 §3.5)
+- [x] 델타 동기화(버전/checksum/tombstone) → 카탈로그 API 에 반영 완료. 전역 버전 스탬프 + `GET /catalog?since=`
 
 ---
 
@@ -60,8 +60,17 @@
 - 가사 이미지 ↔ 텍스트 사용자 전환 / 통계 / 백그라운드 재생(앱)
 
 ## 기술 스택 (백엔드)
-Kotlin · Spring Boot 3 · JPA(+필요시 QueryDSL) · 헥사고날+DDD · MySQL(운영)/H2(개발·테스트)
-· Redis(캐싱, 여유 시) · JWT · springdoc(Swagger) · Thymeleaf(어드민) · JUnit/Kotest · GitHub Actions · Docker
+
+**도입 완료**
+Kotlin 1.9 · Spring Boot 3.3 · JPA · 헥사고날+DDD · **PostgreSQL 16**(`postgres` 프로필·docker compose) / H2(기본·테스트)
+· **Flyway** · JWT(jjwt) · BCrypt · springdoc(Swagger) · Thymeleaf(어드민) · JUnit/Kotest/MockK · **ArchUnit** · GitHub Actions
+
+**아직 아님** — 필요해지면 도입
+QueryDSL(현재 쿼리 복잡도로는 불필요) · Redis(캐싱) · Actuator · Dockerfile
+
+> 초기 계획의 `MySQL(운영)` 은 **PostgreSQL** 로 변경했다. 운영 DB 를 정해두고 시작한 게 아니라
+> "H2 만으로는 매핑이 검증되지 않는다"는 문제를 먼저 풀려던 것이라, 컨테이너로 띄우기 쉽고
+> 표준 SQL 에 엄격한 쪽을 택했다.
 
 ## 다음 단계 (천천히, 하나씩)
 1. [x] **데이터 모델 설계** → docs/DATA_MODEL.md (확정: 저장키+signed URL, rev 제거, Song id 문자열)
@@ -69,8 +78,23 @@ Kotlin · Spring Boot 3 · JPA(+필요시 QueryDSL) · 헥사고날+DDD · MySQL
 3. [x] **카탈로그 도메인 모델** → 값객체(SongId/Lang/StorageKey/Checksum)+Track/Lyric/Song(애그리거트). 순수 Kotlin, 단위 테스트 8개 통과
 4. [x] **영속성 어댑터** → 출력포트(Save/Load) + JPA 엔티티(Song/Track/Lyric) + 매퍼 + 어댑터. 왕복·UPSERT 통합테스트 통과
 5. [x] **카탈로그 API + 델타 동기화** → CatalogVersion + CatalogService(register/delete/getCatalog) + GET /catalog?since=. 델타/tombstone/웹 테스트 통과 (총 15개 green)
-6. [~] 인증 — 회원 도메인/영속성/회원가입·로그인·JWT 완료(라이브 검증 OK, 총 26개 테스트). 남음: JWT 요청 인증 필터 + 관리자 비번 초기화
-7. 관리자 곡 등록/삭제 API + 어드민 웹
-8. 플레이리스트 → 검색
-9. 파일 StoragePort(로컬) + signed URL
-10. CI + README + git
+6. [x] **인증** — 회원 도메인/영속성/회원가입·로그인·JWT + 요청 인증 필터 + 현재 사용자 주입 + 관리자 비번 초기화. 로그인 실패 누적이 롤백돼 계정이 안 잠기던 버그를 실 DB 통합 테스트로 잡아 수정
+7. [x] **관리자** — 곡 등록/수정/삭제 REST API + Thymeleaf 어드민 웹(`/admin`) + 관리자 계정 부트스트랩
+8. [x] **플레이리스트 → 검색** — 여러 개·이름·순서·소유권 검증, 낙관적 락(@Version). 제목/아티스트 검색(LIKE 와일드카드 이스케이프)
+9. [x] **파일** — StoragePort 추상화 + 로컬 어댑터 + HMAC 서명 다운로드 URL
+10. [x] **CI + README + git** — GitHub Actions 빌드/테스트, README 배지
+
+### 그 다음 (MVP 이후)
+11. [x] **아키텍처 테스트** — 계층·컨텍스트 의존 방향을 ArchUnit 규칙 7개로 강제 (문서가 아니라 테스트로)
+12. [x] **실 DB 검증** — postgres 프로필 + docker compose + CI 서비스 컨테이너. 스키마·델타 동기화를 실제 PostgreSQL 에서 확인
+13. [x] **스키마 마이그레이션(Flyway)** — `ddl-auto` 가 만들지 않던 인덱스·제약을 복원하고 `validate` 로 전환. 엔티티와 마이그레이션이 어긋나면 앱이 뜨지 않는다
+14. [ ] 카탈로그 페이징 — 첫 동기화가 전량 반환이라 곡이 늘면 부담
+15. [ ] 운영 관점 — Actuator 헬스체크·메트릭, Dockerfile
+16. [ ] Phase 2 — 구조화 텍스트 가사 + 기타 코드 + 트랜스포즈/카포, 가사 전문 검색, 통계
+
+---
+
+## 현재 상태 (2026-08-27)
+
+**MVP 확정 스코프 7개 전부 구현 완료.** 테스트 104개 통과(PostgreSQL 포함).
+남은 것은 운영 관점 보강(13~15)과 제품 정체성인 코드/가사 구조화(16).

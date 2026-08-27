@@ -14,11 +14,16 @@ spring:
     username: ${NEOMUSIC_DB_USER:neomusic}
     password: ${NEOMUSIC_DB_PASSWORD:neomusic_local_dev}
 
+  # 스키마는 Flyway 마이그레이션(db/migration)이 만든다.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
   jpa:
     hibernate:
-      # 로컬 확인용 프로필이라 엔티티 기준으로 스키마를 맞춘다.
-      # 운영에서는 validate 로 두고 Flyway 등 마이그레이션 도구로 스키마를 관리해야 한다.
-      ddl-auto: update
+      # 스키마를 만들지 않고 '엔티티와 맞는지 검증만' 한다.
+      # 마이그레이션과 엔티티가 어긋나면 앱이 아예 뜨지 않아 드리프트가 즉시 드러난다.
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
