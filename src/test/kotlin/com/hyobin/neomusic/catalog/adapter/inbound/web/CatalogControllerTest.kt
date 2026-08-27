@@ -2,6 +2,7 @@ package com.hyobin.neomusic.catalog.adapter.inbound.web
 
 import com.hyobin.neomusic.catalog.application.CatalogSnapshot
 import com.hyobin.neomusic.catalog.application.port.inbound.GetCatalogUseCase
+import com.hyobin.neomusic.catalog.application.port.inbound.GetSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.SearchSongsUseCase
 import com.hyobin.neomusic.catalog.domain.Checksum
 import com.hyobin.neomusic.catalog.domain.Lang
@@ -34,6 +35,9 @@ class CatalogControllerTest {
 
     @MockBean
     lateinit var getCatalogUseCase: GetCatalogUseCase
+
+    @MockBean
+    lateinit var getSongUseCase: GetSongUseCase
 
     @MockBean
     lateinit var searchSongsUseCase: SearchSongsUseCase

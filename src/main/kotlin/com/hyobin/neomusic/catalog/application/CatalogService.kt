@@ -2,6 +2,7 @@ package com.hyobin.neomusic.catalog.application
 
 import com.hyobin.neomusic.catalog.application.port.inbound.DeleteSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.GetCatalogUseCase
+import com.hyobin.neomusic.catalog.application.port.inbound.GetSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.RegisterSongUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.SearchSongsUseCase
 import com.hyobin.neomusic.catalog.application.port.inbound.UpdateSongUseCase
@@ -24,7 +25,12 @@ class CatalogService(
     private val savePort: SaveSongPort,
     private val loadPort: LoadSongPort,
     private val versionPort: CatalogVersionPort,
-) : RegisterSongUseCase, UpdateSongUseCase, DeleteSongUseCase, GetCatalogUseCase, SearchSongsUseCase {
+) : RegisterSongUseCase,
+    UpdateSongUseCase,
+    DeleteSongUseCase,
+    GetCatalogUseCase,
+    GetSongUseCase,
+    SearchSongsUseCase {
 
     /** 곡 신규 등록: 같은 id가 이미 있으면 거부. 전역 버전을 올려 스탬프해 저장. */
     @Transactional
@@ -49,6 +55,18 @@ class CatalogService(
         song.markDeleted()
         val version = versionPort.next()
         savePort.save(song, version)
+    }
+
+    /**
+     * 곡 하나 조회. 삭제된 곡은 없는 곡과 동일하게 취급한다.
+     *
+     * 반환된 Song 이 응답으로 조립될 때 서명 URL 이 새로 찍힌다 → 만료된 파일 URL 재발급 경로.
+     */
+    @Transactional(readOnly = true)
+    override fun getSong(id: SongId): Song {
+        val song = loadPort.findById(id) ?: throw SongNotFoundException(id)
+        if (song.isDeleted) throw SongNotFoundException(id)
+        return song
     }
 
     /** 곡 검색. 검색어가 비면 조회하지 않고 빈 결과. */
