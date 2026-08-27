@@ -67,6 +67,8 @@ com.hyobin.neomusic
 - **값 객체(Value Object)** — `SongId`, `Lang`, `StorageKey` 등이 생성 시점에 자기 검증 → 이후 코드는 항상 유효한 값만 다룸.
 - **델타 동기화** — 변경 때마다 전역 버전을 올려 곡에 스탬프. `GET /catalog?since=N`은 N 이후 바뀐 곡 + 삭제된 id만 반환. 삭제는 물리 삭제가 아니라 tombstone이라 앱에도 "삭제됨"이 전파됨.
 - **서명 다운로드 URL** — 저장 키를 그대로 노출하지 않고, HMAC 서명 + 만료 시각이 붙은 URL로만 파일을 받게 함. 카탈로그 응답이 키를 서명 URL로 변환해 내려줌. 저장소는 `FileStoragePort`로 추상화(로컬 → S3 교체 용이).
+- **아키텍처를 테스트로 강제** — "의존성은 안쪽을 향한다"를 README 문장으로만 두지 않고 **ArchUnit 규칙 7개**로 고정했다. 규칙을 깨는 import 가 들어오면 CI 가 실패해 머지를 막는다. → [`ArchitectureTest.kt`](src/test/kotlin/com/hyobin/neomusic/ArchitectureTest.kt)
+- **바운디드 컨텍스트 간 경계** — 컨텍스트끼리는 공개된 `application` 계층으로만 대화하고 서로의 `domain`·`adapter` 는 참조하지 않는다. 인증·인가 예외처럼 모든 컨텍스트에 걸치는 개념은 `common/domain` 으로 올려 특정 컨텍스트에 종속되지 않게 했다.
 - **불필요한 전체 시큐리티 배제** — 엔드포인트를 막지 않도록 BCrypt만 사용하고, 경량 JWT 필터 + ArgumentResolver로 인증을 직접 조립.
 
 ---
@@ -115,9 +117,27 @@ com.hyobin.neomusic
 ./gradlew test
 ```
 
+**총 102개 통과.**
+
 - **단위** — 도메인 규칙(Kotest), 유스케이스(MockK)
 - **슬라이스** — 컨트롤러 인증/인가(`@WebMvcTest`), 영속성 왕복(`@DataJpaTest`)
 - **통합** — 델타 동기화 시나리오, 로그인 잠금(실 DB 커밋 검증)
+- **아키텍처** — 계층·컨텍스트 의존 방향을 ArchUnit 으로 검증 (아래)
+- **쿼리 카운트** — 목록 조회의 N+1 재발을 실제 발생 쿼리 수로 감시(`SongSearchQueryCountTest`)
+
+### 아키텍처 테스트 (ArchUnit)
+
+| 규칙 | 막는 것 |
+|---|---|
+| `domain` 은 프레임워크에 의존하지 않는다 | 도메인에 스프링·JPA·JWT·Jackson 이 새어 들어오는 것 |
+| `domain` 은 바깥 계층을 모른다 | 의존 방향이 뒤집히는 것 |
+| `application` 은 `adapter` 를 모른다 | 유스케이스가 구현체에 직접 묶이는 것 |
+| `application` 은 영속성·웹 기술을 모른다 | 저장소·전송 방식 교체 시 유스케이스가 함께 무너지는 것 |
+| JPA 엔티티는 outbound persistence 어댑터 안에만 | DB 스키마가 도메인 모델을 끌고 다니는 것 |
+| 컨텍스트는 다른 컨텍스트의 내부를 참조하지 않는다 | 컨텍스트 경계가 흐려지는 것 |
+| 컨텍스트 간 순환 의존이 없다 | 나중에 떼어내거나 따로 배포할 수 없게 되는 것 |
+
+> `application` 의 `@Service`·`@Transactional` 은 **의도적으로 허용**합니다. 빈 등록과 트랜잭션 경계 선언에만 쓰고, 그 외 스프링 기능(web·data·http)이 유스케이스로 새어 들어오는 것은 규칙으로 막습니다. 순수성을 100% 고집하기보다 실용적인 선을 정하고 **그 선을 테스트로 지키는 쪽**을 택했습니다.
 
 > 통합 테스트로 실제 버그를 잡은 사례: 로그인 실패 카운트를 저장한 뒤 예외를 던지자
 > `@Transactional`이 롤백하며 카운트가 취소되어 계정이 잠기지 않던 문제 →
@@ -136,4 +156,5 @@ com.hyobin.neomusic
 - [x] 플레이리스트 (여러 개·이름·순서, 소유권 검증)
 - [x] CI (GitHub Actions — 푸시마다 빌드·테스트)
 - [x] 관리자 웹 UI (Thymeleaf — 로그인/곡 등록·업로드·삭제, `/admin`)
+- [x] 아키텍처 테스트 (ArchUnit — 계층·컨텍스트 의존 방향 강제)
 - [ ] 가사 텍스트 검색 (가사 구조화 후)
