@@ -1,7 +1,7 @@
 package com.hyobin.neomusic.auth.adapter.inbound.web
 
 import com.hyobin.neomusic.auth.application.AuthenticatedUser
-import com.hyobin.neomusic.auth.domain.UnauthenticatedException
+import com.hyobin.neomusic.common.domain.UnauthenticatedException
 import org.springframework.core.MethodParameter
 import org.springframework.web.bind.support.WebDataBinderFactory
 import org.springframework.web.context.request.NativeWebRequest

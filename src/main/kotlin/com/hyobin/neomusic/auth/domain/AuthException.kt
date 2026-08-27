@@ -14,14 +14,6 @@ class InvalidCredentialsException :
 class AccountLockedException(until: Instant) :
     RuntimeException("계정이 잠겼습니다. 잠시 후 다시 시도해 주세요. (해제 예정: $until)")
 
-/** 인증이 필요한데 토큰이 없거나 유효하지 않음. (401) */
-class UnauthenticatedException :
-    RuntimeException("인증이 필요합니다.")
-
-/** 인증은 됐지만 권한이 부족함(예: 관리자 전용). (403) */
-class ForbiddenException :
-    RuntimeException("이 작업을 수행할 권한이 없습니다.")
-
 /** 존재하지 않는 회원을 조회·변경하려 할 때. (404) */
 class MemberNotFoundException(memberId: Long) :
     RuntimeException("회원을 찾을 수 없습니다: $memberId")

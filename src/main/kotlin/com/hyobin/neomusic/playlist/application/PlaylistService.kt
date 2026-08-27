@@ -1,6 +1,6 @@
 package com.hyobin.neomusic.playlist.application
 
-import com.hyobin.neomusic.auth.domain.ForbiddenException
+import com.hyobin.neomusic.common.domain.ForbiddenException
 import com.hyobin.neomusic.playlist.application.port.inbound.PlaylistUseCase
 import com.hyobin.neomusic.playlist.application.port.outbound.DeletePlaylistPort
 import com.hyobin.neomusic.playlist.application.port.outbound.LoadPlaylistPort
