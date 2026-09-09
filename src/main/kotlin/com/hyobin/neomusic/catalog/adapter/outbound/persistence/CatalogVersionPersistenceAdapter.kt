@@ -6,8 +6,9 @@ import org.springframework.stereotype.Repository
 /**
  * 전역 버전 포트의 JPA 구현.
  *
- * 참고(동시성): 여기선 읽고-더하고-쓰기 방식이다. 곡 변경은 '관리자'만 하고 빈도가 낮아 충돌이 사실상 없다.
- * 고동시성이 필요하면 비관적 락(SELECT ... FOR UPDATE)이나 원자적 UPDATE로 강화할 수 있다.
+ * 델타 동기화의 커서가 이 값이므로, **버전이 겹치거나 순서가 뒤집히면 클라이언트가 변경분을 놓친다.**
+ * 그래서 발급은 행을 잠근 채로 한다([CatalogVersionJpaRepository.findAndLock]).
+ * 잠금이 커밋까지 유지되므로 발급 순서와 커밋 순서가 같아진다.
  */
 @Repository
 class CatalogVersionPersistenceAdapter(
@@ -19,10 +20,16 @@ class CatalogVersionPersistenceAdapter(
             .map { it.version }
             .orElse(0)
 
+    /**
+     * 다음 버전을 발급한다. 반드시 트랜잭션 안에서 호출해야 한다(그래야 잠금이 유지된다).
+     *
+     * 행이 없으면 만들고 진행한다. 실제로는 [CatalogVersionInitializer] 가 기동 시 넣어두므로
+     * 이 경로는 슬라이스 테스트처럼 초기화가 돌지 않은 환경을 위한 대비다.
+     */
     override fun next(): Long {
-        val entity = repository.findById(CatalogVersionJpaEntity.SINGLETON_ID)
-            .orElseGet { CatalogVersionJpaEntity() }
+        val entity = repository.findAndLock(CatalogVersionJpaEntity.SINGLETON_ID)
+            ?: repository.saveAndFlush(CatalogVersionJpaEntity())
         entity.version += 1
-        return repository.save(entity).version
+        return repository.saveAndFlush(entity).version
     }
 }
