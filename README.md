@@ -67,12 +67,13 @@ com.hyobin.neomusic
 - **애그리거트 불변식을 도메인이 강제** — 예: "한 곡에 같은 언어의 오디오는 하나만". REST로 우회 입력해도 도메인에서 막혀 `400`.
 - **값 객체(Value Object)** — `SongId`, `Lang`, `StorageKey` 등이 생성 시점에 자기 검증 → 이후 코드는 항상 유효한 값만 다룸.
 - **델타 동기화** — 변경 때마다 전역 버전을 올려 곡에 스탬프. `GET /catalog?since=N`은 N 이후 바뀐 곡 + 삭제된 id만 반환. 삭제는 물리 삭제가 아니라 tombstone이라 앱에도 "삭제됨"이 전파됨.
-- **커서 페이징** — 응답이 무한정 커지지 않도록 `limit` 으로 자르고, 남으면 `hasMore` 와 `nextSince` 를 준다. 전역 버전은 변경 1건마다 하나씩 발급돼 **곡마다 값이 겹치지 않으므로** `lastModifiedVersion` 하나로 전체 순서가 정해진다 → 그대로 커서가 된다. offset 페이징과 달리 **조회 중 곡이 바뀌어도 건너뛰거나 중복되지 않는다.**
+- **커서 페이징** — 응답이 무한정 커지지 않도록 `limit` 으로 자르고, 남으면 `hasMore` 와 `nextSince` 를 준다. 전역 버전은 변경 1건마다 하나씩 발급돼 **곡마다 값이 겹치지 않으므로** `lastModifiedVersion` 하나로 전체 순서가 정해진다 → 그대로 커서가 된다. offset 페이징과 달리 **앞쪽 곡이 바뀌어도 페이지 경계가 밀리지 않는다.**
+  > "겹치지 않는다"는 공짜가 아니다. 발급이 락 없는 읽고-더하고-쓰기면 동시 요청에서 같은 값이 두 번 나가고, 그러면 클라이언트가 `since` 를 넘길 때 한쪽 변경분을 통째로 건너뛴다. 그래서 발급은 행을 잠그고 하며(`SELECT ... FOR UPDATE`), 잠금이 커밋까지 유지되므로 **발급 순서와 커밋 순서가 어긋나지 않는다**. 옛 구현에서 실제로 실패하는 테스트로 고정해뒀다(`CatalogVersionConcurrencyTest`).
   > 덜 받았을 때 `version`(전역 현재 버전)을 다음 `since` 로 쓰면 안 받은 페이지를 통째로 건너뛴다. 그래서 이어받을 지점을 `nextSince` 로 따로 내려준다. 쓰는 쪽이 가장 하기 쉬운 실수라 테스트로 박아뒀다(`CatalogPagingTest`).
 - **서명 다운로드 URL** — 저장 키를 그대로 노출하지 않고, HMAC 서명 + 만료 시각이 붙은 URL로만 파일을 받게 함. 카탈로그 응답이 키를 서명 URL로 변환해 내려줌. 저장소는 `FileStoragePort`로 추상화(로컬 → S3 교체 용이).
 - **곡 단위 서명 URL 재발급** — 서명 URL 은 발급 시점부터 짧게만(기본 600초) 유효하다. 앱의 첫 실행 전체 다운로드가 그보다 길어지면 **뒤쪽 곡의 URL 이 이미 죽어 있다.** 그래서 `GET /catalog/songs/{id}` 로 곡 하나만 다시 물어보면 응답을 조립할 때 서명이 새로 찍힌다 — 카탈로그 페이지를 통째로 다시 받거나 TTL 을 늘려 창만 넓히지 않아도 된다. 삭제된 곡은 파일을 다시 받을 이유가 없으므로 없는 곡과 똑같이 `404`.
   > "두 번 호출하면 만료 시각이 실제로 밀린다"가 이 API 의 전부라, 테스트에서는 서명기를 모킹하지 않고 진짜 HMAC 어댑터에 조작 가능한 `Clock` 을 넣어 검증한다(`CatalogSongControllerTest`).
-- **아키텍처를 테스트로 강제** — "의존성은 안쪽을 향한다"를 README 문장으로만 두지 않고 **ArchUnit 규칙 7개**로 고정했다. 규칙을 깨는 import 가 들어오면 CI 가 실패해 머지를 막는다. → [`ArchitectureTest.kt`](src/test/kotlin/com/hyobin/neomusic/ArchitectureTest.kt)
+- **아키텍처를 테스트로 강제** — "의존성은 안쪽을 향한다"를 README 문장으로만 두지 않고 **ArchUnit 규칙 7개**로 고정했다. 규칙을 깨는 import 가 들어오면 CI 가 실패한다(`main` 은 브랜치 보호로 이 검사를 통과해야 머지된다). → [`ArchitectureTest.kt`](src/test/kotlin/com/hyobin/neomusic/ArchitectureTest.kt)
 - **바운디드 컨텍스트 간 경계** — 컨텍스트끼리는 공개된 `application` 계층으로만 대화하고 서로의 `domain`·`adapter` 는 참조하지 않는다. 인증·인가 예외처럼 모든 컨텍스트에 걸치는 개념은 `common/domain` 으로 올려 특정 컨텍스트에 종속되지 않게 했다.
 - **불필요한 전체 시큐리티 배제** — 엔드포인트를 막지 않도록 BCrypt만 사용하고, 경량 JWT 필터 + ArgumentResolver로 인증을 직접 조립.
 
@@ -128,7 +129,7 @@ docker compose up -d                                              # postgres:16 
 ./gradlew test
 ```
 
-**총 110개 통과.**
+**총 123개 통과.**
 
 - **단위** — 도메인 규칙(Kotest), 유스케이스(MockK)
 - **슬라이스** — 컨트롤러 인증/인가(`@WebMvcTest`), 영속성 왕복(`@DataJpaTest`)
@@ -136,6 +137,7 @@ docker compose up -d                                              # postgres:16 
 - **아키텍처** — 계층·컨텍스트 의존 방향을 ArchUnit 으로 검증 (아래)
 - **실 DB** — 스키마 생성과 델타 동기화를 **실제 PostgreSQL** 에서 검증 (아래)
 - **쿼리 카운트** — 목록 조회의 N+1 재발을 실제 발생 쿼리 수로 감시(`SongSearchQueryCountTest`)
+- **동시성** — 전역 버전이 동시 발급에서 겹치지 않는지 8스레드로 검증(`CatalogVersionConcurrencyTest`)
 
 ### 아키텍처 테스트 (ArchUnit)
 
@@ -195,4 +197,5 @@ docker compose up -d && ./gradlew test
 - [x] 아키텍처 테스트 (ArchUnit — 계층·컨텍스트 의존 방향 강제)
 - [x] 실제 PostgreSQL 통합 테스트 (docker compose + CI 서비스 컨테이너)
 - [x] 스키마 마이그레이션 (Flyway — 문서가 약속한 인덱스·제약 복원, `validate` 로 드리프트 차단)
+- [x] 전역 버전 동시 발급 안전성 (비관적 락 + 동시성 테스트)
 - [ ] 가사 텍스트 검색 (가사 구조화 후)
